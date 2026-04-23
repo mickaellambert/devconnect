@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevConnect</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>DevConnect</h1>
+    <div id="userInfo" class="user-info" hidden>
+      <span>Connecté : <strong id="usernameLabel"></strong></span>
+      <button id="logoutBtn" class="btn btn-ghost">Déconnexion</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Écran d'authentification -->
+    <section id="authScreen" class="auth">
+      <form id="loginForm" class="card">
+        <h2>Connexion</h2>
+        <label>
+          Email
+          <input type="email" name="email" required autocomplete="email">
+        </label>
+        <label>
+          Mot de passe
+          <input type="password" name="password" required autocomplete="current-password">
+        </label>
+        <button type="submit" class="btn btn-primary">Se connecter</button>
+        <p class="switch">
+          <a href="#" id="showRegister">Pas encore inscrit ? Créer un compte</a>
+        </p>
+      </form>
+
+      <form id="registerForm" class="card" hidden>
+        <h2>Inscription</h2>
+        <label>
+          Nom d'utilisateur
+          <input type="text" name="username" required autocomplete="username">
+        </label>
+        <label>
+          Email
+          <input type="email" name="email" required autocomplete="email">
+        </label>
+        <label>
+          Mot de passe
+          <input type="password" name="password" required autocomplete="new-password">
+        </label>
+        <button type="submit" class="btn btn-primary">Créer mon compte</button>
+        <p class="switch">
+          <a href="#" id="showLogin">Déjà inscrit ? Se connecter</a>
+        </p>
+      </form>
+    </section>
+
+    <!-- Écran app (visible après connexion) -->
+    <section id="appScreen" class="app" hidden>
+      <form id="newPostForm" class="card new-post">
+        <label class="visually-hidden" for="newPostContent">Nouveau post</label>
+        <textarea id="newPostContent" name="content" placeholder="Quoi de neuf ?" required rows="3"></textarea>
+        <button type="submit" class="btn btn-primary">Publier</button>
+      </form>
+
+      <div id="timeline" class="timeline" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "devconnect-api",
+  "version": "1.0.0",
+  "description": "DevConnect — Mini réseau social pour développeurs (CESI INF218)",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

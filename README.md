@@ -1,51 +1,194 @@
-# DevConnect 🚀
+# DevConnect — Jour 1 (Point de départ)
 
-Mini réseau social pour développeurs — projet fil rouge du module **INF218 — Développement avancé Objet sécurisé** au CESI (4 jours).
+Bienvenue ! Aujourd'hui tu vas construire ta première **API REST** avec Express.
 
-## 🎯 Objectifs du module
+---
 
-Apprendre à construire une API web moderne en découvrant progressivement :
+## 🎯 Ce que tu vas apprendre
 
-- **Express** et le routage HTTP
-- Un **ORM** (Prisma) connecté à une base SQLite
-- L'**authentification sécurisée** avec JWT
-- L'**envoi d'e-mails** et l'intégration de bibliothèques externes
+- Construire un serveur HTTP avec **Express**
+- Comprendre le **routage** : méthode HTTP + URL → action
+- Manipuler `req` (requête) et `res` (réponse)
+- Utiliser les **codes de statut HTTP** (200, 201, 400, 404)
 
-## 📅 Déroulé sur 4 jours
+---
 
-| Jour | Thème | Branches |
-|------|-------|----------|
-| **J1** | Express + premier CRUD (données en mémoire) | `j1/start` → `j1/solution` |
-| **J2** | Prisma + SQLite + relations User ↔ Post | `j2/start` → `j2/solution` |
-| **J3** | Relation N-N (likes) + Authentification JWT | `j3/start` → `j3/solution` |
-| **J4** | Envoi d'e-mails (Nodemailer) + front minimal | `j4/start` → `j4/solution` |
+## ✅ Prérequis (à vérifier avant de commencer)
 
-## 🌳 Stratégie de branches
+Ouvre un terminal et tape :
 
-- `main` → l'**état final du projet** après les 4 jours.
-- `jX/start` → point de départ du jour X (code à trous, à compléter).
-- `jX/solution` → correction complète du jour X.
+```bash
+node --version    # doit afficher v22.x ou plus
+npm --version     # doit afficher 10.x ou plus
+git --version     # doit afficher git version 2.x
+```
 
-La progression est **linéaire** : chaque `jX/start` part de `jX-1/solution`. On construit le même projet qui s'enrichit de jour en jour.
+Si l'une des trois ne marche pas, lève la main avant d'aller plus loin.
 
-## 🛠️ Prérequis
+**Outils recommandés** :
 
-- **Node.js** (version LTS, voir le `.nvmrc` de chaque branche)
-- **npm** (fourni avec Node)
-- Un client HTTP pour tester les routes — on utilise **Thunder Client** (extension VS Code)
+- [VS Code](https://code.visualstudio.com/) comme éditeur
+- Extension **Thunder Client** (icône éclair dans la barre latérale de VS Code) pour tester les routes
 
-## 🚀 Démarrer
+---
+
+## 🚀 Installation pas-à-pas
+
+### 1️⃣ Cloner le repo
 
 ```bash
 git clone git@github.com:mickaellambert/devconnect.git
 cd devconnect
-git checkout j1/start    # pour démarrer le jour 1
+```
+
+### 2️⃣ Switcher sur la branche du jour
+
+```bash
+git checkout j1/start
+```
+
+### 3️⃣ Installer les dépendances
+
+```bash
 npm install
+```
+
+Tu vois `added 96 packages` ? Parfait.
+
+### 4️⃣ Lancer le serveur
+
+```bash
 npm run dev
 ```
 
-Le serveur tourne sur [http://localhost:3000](http://localhost:3000).
+Tu dois voir apparaître :
 
-## 👤 Auteur
+```
+✅ Serveur DevConnect lancé sur http://localhost:4000
+```
 
-Mickaël Lambert — formateur CESI.
+> 💡 **nodemon** redémarre le serveur tout seul à chaque fois que tu enregistres un fichier. Pas besoin de faire Ctrl+C / relancer en boucle.
+
+### 5️⃣ Ouvrir le front dans ton navigateur
+
+Va sur [http://localhost:4000](http://localhost:4000). Tu dois voir un écran de connexion avec le logo DevConnect.
+
+### 6️⃣ Te connecter
+
+- **Email** : `alice@devconnect.io` (ou n'importe quel email présent dans `data/users.js`)
+- **Mot de passe** : `demo` (il est ignoré au J1, on le sécurisera au J3)
+
+Tu vois la timeline avec les 10 posts pré-existants ? 🎉 Tu es prêt à coder.
+
+---
+
+## 🗂️ Structure du projet
+
+```
+devconnect/
+├── index.js                         ← serveur Express (port 4000)
+├── data/
+│   ├── users.js                     ← 5 users en dur
+│   └── posts.js                     ← 10 posts en dur
+├── middleware/
+│   └── authenticate.js              🔒 NE PAS TOUCHER
+├── routes/
+│   ├── auth.js                      🔒 NE PAS TOUCHER
+│   ├── users.js                     ✏️ à compléter
+│   └── posts.js                     ✏️ à compléter
+└── public/                          🔒 NE PAS TOUCHER (front fourni)
+    ├── index.html
+    ├── styles.css
+    └── app.js
+```
+
+Les zones 🔒 **NE PAS TOUCHER** sont fournies : le middleware d'authentification, les routes de login/inscription, et le front. Elles travaillent pour toi. Tu te concentres sur `routes/users.js` et `routes/posts.js`.
+
+---
+
+## 📋 Les 7 routes du jour
+
+*(2 fournies comme modèle + 4 à coder + 1 bonus)*
+
+| # | Méthode | URL | Rôle | Statut |
+|---|---------|-----|------|--------|
+| 1 | `GET` | `/users` | Liste des users | ✅ Fournie (modèle) |
+| 2 | `GET` | `/users/:id` | Détail d'un user | 🔧 À toi (facile) |
+| 3 | `GET` | `/posts` | Liste des posts | ✅ Fournie (modèle) |
+| 4 | `GET` | `/posts/:id` | Détail d'un post | 🔧 À toi (facile) |
+| 5 | `POST` | `/posts` | Créer un post | 🔧 À toi (moyen) |
+| 6 | `PUT` | `/posts/:id/likes` | Liker un post | 🔧 À toi (difficile) |
+| 7 | `DELETE` | `/posts/:id/likes` | Retirer son like | 🎁 Bonus |
+
+Chaque route à coder contient un **guide pas-à-pas en commentaires** juste au-dessus : indices de syntaxe, cas d'erreur, et requête exacte à tester.
+
+---
+
+## 🔑 Savoir qui fait l'action : `req.user.id`
+
+Toutes les routes `/users` et `/posts` exigent un header `Authorization: Bearer user-X`. Le middleware `authenticate` le lit et te met l'utilisateur connecté dans **`req.user`**.
+
+👉 **Dans tes routes, utilise `req.user.id` pour savoir qui fait l'action.** Pas besoin de passer un userId dans le body ou l'URL — le serveur le connaît déjà grâce au token.
+
+Exemple :
+
+```js
+router.post('/', (req, res) => {
+  const newPost = {
+    id: 42,
+    userId: req.user.id,    // 👈 l'auteur est l'utilisateur connecté
+    content: req.body.content,
+    likes: [],
+    createdAt: new Date().toISOString()
+  };
+  // …
+});
+```
+
+---
+
+## 🧪 Tester tes routes
+
+### Avec Thunder Client (pour les tests précis et les cas d'erreur)
+
+1. Ouvre Thunder Client (icône éclair à gauche dans VS Code).
+2. Clique sur **New Request**.
+3. Choisis la méthode HTTP et tape l'URL (ex : `http://localhost:4000/users/2`).
+4. Onglet **Headers** → ajoute :
+   ```
+   Authorization: Bearer user-1
+   ```
+5. Pour un `POST` : onglet **Body** → **JSON** → écris ton JSON.
+6. Clique sur **Send**.
+
+### Dans le navigateur (pour le rendu visuel)
+
+Le front fourni tape automatiquement ton API. **Dès que tu codes une route, l'action correspondante se débloque** dans l'interface :
+
+- `POST /posts` → le bouton "Publier" fonctionne
+- `PUT /posts/:id/likes` → les boutons ❤️ fonctionnent
+- `DELETE /posts/:id/likes` → tu peux retirer ton like
+
+C'est ton **tableau de bord de progression visuel**.
+
+---
+
+## ⚠️ "Ma requête reste bloquée sur Loading…"
+
+C'est **normal** si tu n'as pas encore écrit le code de la route. Express attend que tu appelles `res.json()`, `res.status().send()`, ou `res.end()` pour renvoyer une réponse. Tant que tu ne le fais pas, la requête reste suspendue.
+
+👉 **Solution** : écris le corps de la route, enregistre, relance la requête.
+
+---
+
+## 💪 Par où commencer ?
+
+Suis cet ordre, du plus facile au plus difficile :
+
+1. **`GET /users/:id`** → 90 % du code est dans les commentaires. Victoire rapide pour te lancer.
+2. **`GET /posts/:id`** → exactement la même logique que la 1, applique ce que tu as appris.
+3. **`POST /posts`** → première création de ressource, tu découvres `req.body` et `req.user.id`.
+4. **`PUT /posts/:id/likes`** → la plus subtile (idempotence, PUT vs POST — tout est expliqué dans les commentaires).
+5. **`DELETE /posts/:id/likes`** 🎁 → bonus si tu as fini en avance.
+
+Bon code ! 🚀
