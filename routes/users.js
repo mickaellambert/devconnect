@@ -4,15 +4,7 @@ import { users } from '../data/users.js';
 const router = express.Router();
 
 // ═══════════════════════════════════════════════════════════════
-// ✅ EXEMPLE FOURNI : GET /users
-// ═══════════════════════════════════════════════════════════════
-// Cette route renvoie la liste de tous les users.
-// Elle te sert de modèle pour les routes suivantes.
-//
-// Méthode HTTP : GET (on lit des données)
-// URL          : /users
-// Headers      : Authorization: Bearer user-X (géré automatiquement)
-// Réponse      : un tableau de tous les users au format JSON
+// GET /users → liste de tous les users
 // ═══════════════════════════════════════════════════════════════
 router.get('/', (req, res) => {
   res.json(users);
@@ -20,39 +12,17 @@ router.get('/', (req, res) => {
 
 
 // ═══════════════════════════════════════════════════════════════
-// 🔧 À TOI DE JOUER : GET /users/:id
-// ═══════════════════════════════════════════════════════════════
-// Cette route renvoie le détail d'un seul user identifié par son id.
-//
-// Méthode HTTP : GET
-// URL          : /users/:id        (ex: /users/2)
-// Headers      : Authorization: Bearer user-X (géré automatiquement)
-// Réponse      : l'objet user au format JSON
-//
-// ─── ÉTAPES ───────────────────────────────────────────────────
-//
-// 1. Récupère l'id depuis l'URL.
-//    👉 Indice : req.params.id
-//    👉 Attention : req.params.id est une string, convertis-le avec Number()
-//
-// 2. Trouve le user correspondant dans le tableau `users`.
-//    👉 Indice : utilise .find() sur le tableau
-//       users.find(u => u.id === id)
-//
-// 3. Si le user n'existe pas, renvoie un statut 404 avec un message :
-//    👉 res.status(404).json({ error: "User non trouvé" })
-//
-// 4. Sinon, renvoie le user au format JSON.
-//    👉 res.json(user)
-//
-// ─── POUR TESTER ──────────────────────────────────────────────
-// Dans Thunder Client :
-//   Méthode  : GET
-//   URL      : http://localhost:4000/users/2
-//   Headers  : Authorization: Bearer user-1
+// GET /users/:id → détail d'un user
 // ═══════════════════════════════════════════════════════════════
 router.get('/:id', (req, res) => {
-  // ton code ici
+  const id = Number(req.params.id);
+  const user = users.find(u => u.id === id);
+
+  if (!user) {
+    return res.status(404).json({ error: "User non trouvé" });
+  }
+
+  res.json(user);
 });
 
 

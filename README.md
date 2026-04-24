@@ -1,194 +1,71 @@
-# DevConnect — Jour 1 (Point de départ)
+# DevConnect — Jour 1 (Correction)
 
-Bienvenue ! Aujourd'hui tu vas construire ta première **API REST** avec Express.
+Cette branche contient la **correction complète** du jour 1 : toutes les routes à trous sont implémentées.
 
----
-
-## 🎯 Ce que tu vas apprendre
-
-- Construire un serveur HTTP avec **Express**
-- Comprendre le **routage** : méthode HTTP + URL → action
-- Manipuler `req` (requête) et `res` (réponse)
-- Utiliser les **codes de statut HTTP** (200, 201, 400, 404)
-
----
-
-## ✅ Prérequis (à vérifier avant de commencer)
-
-Ouvre un terminal et tape :
-
-```bash
-node --version    # doit afficher v22.x ou plus
-npm --version     # doit afficher 10.x ou plus
-git --version     # doit afficher git version 2.x
-```
-
-Si l'une des trois ne marche pas, lève la main avant d'aller plus loin.
-
-**Outils recommandés** :
-
-- [VS Code](https://code.visualstudio.com/) comme éditeur
-- Extension **Thunder Client** (icône éclair dans la barre latérale de VS Code) pour tester les routes
-
----
-
-## 🚀 Installation pas-à-pas
-
-### 1️⃣ Cloner le repo
-
-```bash
-git clone git@github.com:mickaellambert/devconnect.git
-cd devconnect
-```
-
-### 2️⃣ Switcher sur la branche du jour
-
-```bash
-git checkout j1/start
-```
-
-### 3️⃣ Installer les dépendances
+## 🚀 Lancer
 
 ```bash
 npm install
-```
-
-Tu vois `added 96 packages` ? Parfait.
-
-### 4️⃣ Lancer le serveur
-
-```bash
 npm run dev
 ```
 
-Tu dois voir apparaître :
+Le serveur démarre sur [http://localhost:4000](http://localhost:4000).
 
-```
-✅ Serveur DevConnect lancé sur http://localhost:4000
-```
+## 🔐 Connexion pour la démo
 
-> 💡 **nodemon** redémarre le serveur tout seul à chaque fois que tu enregistres un fichier. Pas besoin de faire Ctrl+C / relancer en boucle.
+- Email : `alice@devconnect.io` (ou n'importe quel email de `data/users.js`)
+- Mot de passe : n'importe quoi (ignoré au J1)
 
-### 5️⃣ Ouvrir le front dans ton navigateur
+## 📋 Les routes
 
-Va sur [http://localhost:4000](http://localhost:4000). Tu dois voir un écran de connexion avec le logo DevConnect.
+### Fournies (scaffolding commun, non modifiées pendant l'atelier)
 
-### 6️⃣ Te connecter
+| Méthode | URL | Rôle |
+|---------|-----|------|
+| `POST` | `/auth/register` | Inscription (stub : ignore le password, renvoie un token fake) |
+| `POST` | `/auth/login` | Connexion (stub : accepte l'email, ignore le password) |
+| `GET` | `/users` | Liste des users |
+| `GET` | `/posts` | Timeline |
 
-- **Email** : `alice@devconnect.io` (ou n'importe quel email présent dans `data/users.js`)
-- **Mot de passe** : `demo` (il est ignoré au J1, on le sécurisera au J3)
+### Implémentées pendant l'atelier
 
-Tu vois la timeline avec les 10 posts pré-existants ? 🎉 Tu es prêt à coder.
+| Méthode | URL | Rôle |
+|---------|-----|------|
+| `GET` | `/users/:id` | Détail d'un user |
+| `GET` | `/posts/:id` | Détail d'un post |
+| `POST` | `/posts` | Créer un post |
+| `PUT` | `/posts/:id/likes` | Liker un post |
+| `DELETE` | `/posts/:id/likes` | Retirer son like |
 
----
+Toutes les routes `/users/*` et `/posts/*` exigent le header `Authorization: Bearer user-X`, géré automatiquement par le front via le token stocké en `localStorage`.
 
-## 🗂️ Structure du projet
+## 💡 Points pédagogiques clés
 
-```
-devconnect/
-├── index.js                         ← serveur Express (port 4000)
-├── data/
-│   ├── users.js                     ← 5 users en dur
-│   └── posts.js                     ← 10 posts en dur
-├── middleware/
-│   └── authenticate.js              🔒 NE PAS TOUCHER
-├── routes/
-│   ├── auth.js                      🔒 NE PAS TOUCHER
-│   ├── users.js                     ✏️ à compléter
-│   └── posts.js                     ✏️ à compléter
-└── public/                          🔒 NE PAS TOUCHER (front fourni)
-    ├── index.html
-    ├── styles.css
-    └── app.js
-```
+### Muter un tableau en mémoire ≠ persistance
 
-Les zones 🔒 **NE PAS TOUCHER** sont fournies : le middleware d'authentification, les routes de login/inscription, et le front. Elles travaillent pour toi. Tu te concentres sur `routes/users.js` et `routes/posts.js`.
+`posts.push(...)` modifie le tableau **en RAM uniquement**. Au redémarrage du serveur, toutes les créations sont perdues : le code relit les fichiers `data/` qui sont restés intacts. On corrigera ça au **J2 avec Prisma + SQLite**.
 
----
+### L'authentification : fake aujourd'hui, JWT au J3
 
-## 📋 Les 7 routes du jour
+Le middleware `authenticate.js` lit un token au format `user-X` et récupère l'utilisateur. **C'est volontairement trivial à forger** : n'importe qui peut écrire `Bearer user-2` et se faire passer pour Bob. Au **J3**, on remplacera ce token par un vrai JWT signé cryptographiquement. Le contrat HTTP restera identique : seul le contenu du token évolue, le front ne bouge pas.
 
-*(2 fournies comme modèle + 4 à coder + 1 bonus)*
+### PUT vs POST sur les likes
 
-| # | Méthode | URL | Rôle | Statut |
-|---|---------|-----|------|--------|
-| 1 | `GET` | `/users` | Liste des users | ✅ Fournie (modèle) |
-| 2 | `GET` | `/users/:id` | Détail d'un user | 🔧 À toi (facile) |
-| 3 | `GET` | `/posts` | Liste des posts | ✅ Fournie (modèle) |
-| 4 | `GET` | `/posts/:id` | Détail d'un post | 🔧 À toi (facile) |
-| 5 | `POST` | `/posts` | Créer un post | 🔧 À toi (moyen) |
-| 6 | `PUT` | `/posts/:id/likes` | Liker un post | 🔧 À toi (difficile) |
-| 7 | `DELETE` | `/posts/:id/likes` | Retirer son like | 🎁 Bonus |
+Un like est identifié par le couple `(postId, userId)` :
+- `postId` vient de l'URL
+- `userId` vient du token (injecté dans `req.user.id` par le middleware)
 
-Chaque route à coder contient un **guide pas-à-pas en commentaires** juste au-dessus : indices de syntaxe, cas d'erreur, et requête exacte à tester.
+Le client connaît donc **l'adresse complète** du like avant de l'envoyer. Dans ce cas, HTTP recommande `PUT` (client-defined URI) plutôt que `POST` (server-defined URI).
 
----
+Bonus : `PUT` est **idempotent**. Liker 2 fois le même post = même état final, sans erreur — l'UX est robuste aux double-clics. La symétrie `PUT` / `DELETE` sur la même URL renforce le modèle REST : **une URL = une ressource**.
 
-## 🔑 Savoir qui fait l'action : `req.user.id`
+### Les codes de statut HTTP
 
-Toutes les routes `/users` et `/posts` exigent un header `Authorization: Bearer user-X`. Le middleware `authenticate` le lit et te met l'utilisateur connecté dans **`req.user`**.
-
-👉 **Dans tes routes, utilise `req.user.id` pour savoir qui fait l'action.** Pas besoin de passer un userId dans le body ou l'URL — le serveur le connaît déjà grâce au token.
-
-Exemple :
-
-```js
-router.post('/', (req, res) => {
-  const newPost = {
-    id: 42,
-    userId: req.user.id,    // 👈 l'auteur est l'utilisateur connecté
-    content: req.body.content,
-    likes: [],
-    createdAt: new Date().toISOString()
-  };
-  // …
-});
-```
-
----
-
-## 🧪 Tester tes routes
-
-### Avec Thunder Client (pour les tests précis et les cas d'erreur)
-
-1. Ouvre Thunder Client (icône éclair à gauche dans VS Code).
-2. Clique sur **New Request**.
-3. Choisis la méthode HTTP et tape l'URL (ex : `http://localhost:4000/users/2`).
-4. Onglet **Headers** → ajoute :
-   ```
-   Authorization: Bearer user-1
-   ```
-5. Pour un `POST` : onglet **Body** → **JSON** → écris ton JSON.
-6. Clique sur **Send**.
-
-### Dans le navigateur (pour le rendu visuel)
-
-Le front fourni tape automatiquement ton API. **Dès que tu codes une route, l'action correspondante se débloque** dans l'interface :
-
-- `POST /posts` → le bouton "Publier" fonctionne
-- `PUT /posts/:id/likes` → les boutons ❤️ fonctionnent
-- `DELETE /posts/:id/likes` → tu peux retirer ton like
-
-C'est ton **tableau de bord de progression visuel**.
-
----
-
-## ⚠️ "Ma requête reste bloquée sur Loading…"
-
-C'est **normal** si tu n'as pas encore écrit le code de la route. Express attend que tu appelles `res.json()`, `res.status().send()`, ou `res.end()` pour renvoyer une réponse. Tant que tu ne le fais pas, la requête reste suspendue.
-
-👉 **Solution** : écris le corps de la route, enregistre, relance la requête.
-
----
-
-## 💪 Par où commencer ?
-
-Suis cet ordre, du plus facile au plus difficile :
-
-1. **`GET /users/:id`** → 90 % du code est dans les commentaires. Victoire rapide pour te lancer.
-2. **`GET /posts/:id`** → exactement la même logique que la 1, applique ce que tu as appris.
-3. **`POST /posts`** → première création de ressource, tu découvres `req.body` et `req.user.id`.
-4. **`PUT /posts/:id/likes`** → la plus subtile (idempotence, PUT vs POST — tout est expliqué dans les commentaires).
-5. **`DELETE /posts/:id/likes`** 🎁 → bonus si tu as fini en avance.
-
-Bon code ! 🚀
+| Code | Signification | Utilisation ici |
+|------|---------------|-----------------|
+| `200` | OK | Lecture réussie, ou PUT sans effet (déjà liké) |
+| `201` | Created | Création d'une ressource (POST / PUT first-time) |
+| `204` | No Content | Suppression réussie, pas de corps de réponse |
+| `400` | Bad Request | Validation du body échouée |
+| `401` | Unauthorized | Token absent ou invalide |
+| `404` | Not Found | Ressource inexistante |
