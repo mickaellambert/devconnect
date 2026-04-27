@@ -124,9 +124,58 @@ Chaque route à coder contient un **guide pas-à-pas en commentaires** juste au-
 
 ---
 
+## 🧩 C'est quoi un middleware ?
+
+Tu vas voir dans `index.js` plein de `app.use(...)` :
+
+```js
+app.use(express.json());
+app.use(authenticate);
+app.use('/users', requireAuth, usersRouter);
+```
+
+Ces fonctions s'appellent des **middlewares**. C'est un concept central d'Express (et de la plupart des frameworks web modernes) — ça vaut le coup de comprendre ce que c'est avant de plonger dans le code.
+
+### L'analogie du péage d'autoroute
+
+> Imagine que ta requête HTTP est une **voiture** qui veut atteindre sa destination (= une de tes routes Express). Sur le chemin, elle passe par plusieurs **péages**. Chaque péage peut :
+>
+> - **laisser passer** la voiture sans rien faire,
+> - **modifier** la voiture au passage (ex : coller un autocollant `req.user`),
+> - **bloquer** la voiture s'il y a un problème (ticket invalide → demi-tour avec un `401`).
+>
+> Ces péages, ce sont les middlewares. Ils s'exécutent **dans l'ordre**, entre l'arrivée d'une requête et sa route finale. Chacun fait **une seule chose**.
+
+### Les middlewares qu'on utilise dans ce projet
+
+Tu n'as pas besoin de les coder (ils sont fournis), mais sache qu'ils sont là :
+
+| Middleware | Rôle |
+|------------|------|
+| `express.json()` | Parse le body JSON entrant en objet JavaScript (sinon `req.body` serait vide) |
+| `authenticate` | Lit le header `Authorization: Bearer user-X` et attache `req.user` à la requête |
+| `requireAuth` | Renvoie `401 Unauthorized` si `req.user` n'a pas été défini |
+| `express.static('public')` | Sert les fichiers du dossier `public/` (notre front) |
+
+### Un concept transverse
+
+Ce pattern n'est pas spécifique à Express ni à Node. Tu le retrouveras partout :
+
+| Stack | Comment on appelle ça |
+|-------|----------------------|
+| Express (Node) | `middleware` |
+| Spring (Java) | `filter` / `interceptor` |
+| ASP.NET (.NET) | `middleware pipeline` |
+| Symfony (PHP) | `kernel event` / `event listener` |
+| Django (Python) | `middleware` |
+
+Même idée partout : **une chaîne de fonctions qui transforment la requête** avant qu'elle atteigne ta logique métier.
+
+---
+
 ## 🔑 Savoir qui fait l'action : `req.user.id`
 
-Toutes les routes `/users` et `/posts` exigent un header `Authorization: Bearer user-X`. Le middleware `authenticate` le lit et te met l'utilisateur connecté dans **`req.user`**.
+Maintenant que tu sais ce qu'est un middleware, voici le concret. Toutes les routes `/users` et `/posts` exigent un header `Authorization: Bearer user-X`. Le middleware `authenticate` le lit et te met l'utilisateur connecté dans **`req.user`**.
 
 👉 **Dans tes routes, utilise `req.user.id` pour savoir qui fait l'action.** Pas besoin de passer un userId dans le body ou l'URL — le serveur le connaît déjà grâce au token.
 
