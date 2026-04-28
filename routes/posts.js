@@ -11,7 +11,8 @@ const router = express.Router();
 //
 // Méthode HTTP : GET (on lit des données)
 // URL          : /posts
-// Headers      : Authorization: Bearer user-X (géré automatiquement)
+// Headers      : Authorization: Bearer user-X (injecté par le front ;
+//                à ajouter manuellement dans Thunder Client)
 // Réponse      : un tableau de tous les posts au format JSON
 // ═══════════════════════════════════════════════════════════════
 router.get('/', (req, res) => {
@@ -26,7 +27,8 @@ router.get('/', (req, res) => {
 //
 // Méthode HTTP : GET
 // URL          : /posts/:id        (ex: /posts/3)
-// Headers      : Authorization: Bearer user-X (géré automatiquement)
+// Headers      : Authorization: Bearer user-X (injecté par le front ;
+//                à ajouter manuellement dans Thunder Client)
 // Réponse      : l'objet post au format JSON
 //
 // ─── ÉTAPES ───────────────────────────────────────────────────
@@ -63,7 +65,8 @@ router.get('/:id', (req, res) => {
 //
 // Méthode HTTP : POST (on crée une nouvelle ressource)
 // URL          : /posts
-// Headers      : Authorization: Bearer user-X (géré automatiquement)
+// Headers      : Authorization: Bearer user-X (injecté par le front ;
+//                à ajouter manuellement dans Thunder Client)
 // Body envoyé  : { "content": "Mon premier post !" }
 // Réponse      : le post créé, avec id, likes vides et date générés
 //
@@ -128,7 +131,8 @@ router.post('/', (req, res) => {
 //
 // Méthode HTTP : PUT
 // URL          : /posts/:id/likes       (ex: /posts/4/likes)
-// Headers      : Authorization: Bearer user-X (géré automatiquement)
+// Headers      : Authorization: Bearer user-X (injecté par le front ;
+//                à ajouter manuellement dans Thunder Client)
 // Body envoyé  : aucun
 // Réponse      : le post mis à jour
 //
@@ -180,7 +184,8 @@ router.put('/:id/likes', (req, res) => {
 //
 // Méthode HTTP : DELETE
 // URL          : /posts/:id/likes       (ex: /posts/1/likes)
-// Headers      : Authorization: Bearer user-X (géré automatiquement)
+// Headers      : Authorization: Bearer user-X (injecté par le front ;
+//                à ajouter manuellement dans Thunder Client)
 // Body envoyé  : aucun
 // Réponse      : 204 No Content si succès, 404 si le like n'existait pas
 //

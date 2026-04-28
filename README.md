@@ -232,6 +232,8 @@ C'est **normal** si tu n'as pas encore écrit le code de la route. Express atten
 
 ## 💪 Par où commencer ?
 
+> 💡 **Ouvre `routes/users.js` et `routes/posts.js` dans VS Code, et utilise Ctrl+F** (ou Cmd+F sur Mac) **pour chercher `🔧 À TOI DE JOUER`**. Tu trouveras chaque emplacement à coder avec son guide pas-à-pas juste au-dessus.
+
 Suis cet ordre, du plus facile au plus difficile :
 
 1. **`GET /users/:id`** → 90 % du code est dans les commentaires. Victoire rapide pour te lancer.

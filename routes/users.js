@@ -11,7 +11,8 @@ const router = express.Router();
 //
 // Méthode HTTP : GET (on lit des données)
 // URL          : /users
-// Headers      : Authorization: Bearer user-X (géré automatiquement)
+// Headers      : Authorization: Bearer user-X (injecté par le front ;
+//                à ajouter manuellement dans Thunder Client)
 // Réponse      : un tableau de tous les users au format JSON
 // ═══════════════════════════════════════════════════════════════
 router.get('/', (req, res) => {
@@ -26,7 +27,8 @@ router.get('/', (req, res) => {
 //
 // Méthode HTTP : GET
 // URL          : /users/:id        (ex: /users/2)
-// Headers      : Authorization: Bearer user-X (géré automatiquement)
+// Headers      : Authorization: Bearer user-X (injecté par le front ;
+//                à ajouter manuellement dans Thunder Client)
 // Réponse      : l'objet user au format JSON
 //
 // ─── ÉTAPES ───────────────────────────────────────────────────
