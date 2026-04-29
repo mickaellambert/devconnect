@@ -1,13 +1,15 @@
-// ═══════════════════════════════════════════════════════════════
-// 📋 ATELIERS DANS CE FICHIER (par ordre conseillé)
-// ═══════════════════════════════════════════════════════════════
-//   1. 🔧 ATELIER 2 (zod) — valider POST /posts            ↓ ligne ~42
-// ═══════════════════════════════════════════════════════════════
-
 import express from 'express';
+import { z } from 'zod';
 import { posts } from '../data/posts.js';
 
 const router = express.Router();
+
+const PostSchema = z.object({
+  content: z.string()
+            .min(1, "Le contenu ne peut pas être vide")
+            .max(500, "500 caractères max")
+});
+
 
 // ═══════════════════════════════════════════════════════════════
 // GET /posts → timeline (tous les posts)
@@ -33,52 +35,15 @@ router.get('/:id', (req, res) => {
 
 
 // ═══════════════════════════════════════════════════════════════
-// 🔧 ATELIER 2 (zod) — À TOI DE JOUER : valider POST /posts
-// ═══════════════════════════════════════════════════════════════
-// Hier, tu validais "à la main" avec un `if (!content)`. Aujourd'hui,
-// on remplace ça par un schéma zod qui décrit ce qu'on attend dans
-// le body, et la lib se charge de tout vérifier (présence, type,
-// longueur, etc.).
-//
-// ─── ÉTAPES ───────────────────────────────────────────────────
-//
-// 1. Importe zod en haut du fichier (sous l'import express) :
-//    👉 import { z } from 'zod';
-//
-// 2. Définis le schéma juste avant la route ci-dessous :
-//    👉 const PostSchema = z.object({
-//         content: z.string()
-//                   .min(1, "Le contenu ne peut pas être vide")
-//                   .max(500, "500 caractères max")
-//       });
-//
-// 3. Dans la route, remplace le `if (!content)` par un safeParse :
-//    👉 const result = PostSchema.safeParse(req.body);
-//       if (!result.success) {
-//         return res.status(400).json({ error: result.error.issues[0].message });
-//       }
-//       const { content } = result.data;
-//
-// 💡 Pourquoi `safeParse` et pas `parse` ?
-//    `parse` lance une exception si la validation échoue. Tu devrais
-//    encadrer avec un try/catch. `safeParse` renvoie un objet
-//    `{ success, data, error }` — plus propre, pas de try/catch.
-//
-// 💡 Bonus : pour récupérer TOUTES les erreurs d'un coup, regarde
-//    `result.error.issues` — c'est un tableau.
-//
-// ─── POUR TESTER ──────────────────────────────────────────────
-// Dans Thunder Client (Authorization: Bearer user-1) :
-//   POST /posts   { "content": "" }                  → 400
-//   POST /posts   { "content": "abc" }               → 201
-//   POST /posts   { "content": "x".repeat(501) }     → 400
+// POST /posts → création d'un nouveau post
+// Body : { content }   (validé par PostSchema)
 // ═══════════════════════════════════════════════════════════════
 router.post('/', (req, res) => {
-  const { content } = req.body;
-
-  if (!content) {
-    return res.status(400).json({ error: "content est requis" });
+  const result = PostSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error.issues[0].message });
   }
+  const { content } = result.data;
 
   const newPost = {
     id: Math.max(...posts.map(p => p.id)) + 1,
