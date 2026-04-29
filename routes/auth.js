@@ -1,17 +1,18 @@
 import express from 'express';
 import { z } from 'zod';
 import { users } from '../data/users.js';
+import { sendWelcomeEmail } from '../services/email.js';
 
 const router = express.Router();
 
 const RegisterSchema = z.object({
   username: z.string().min(3, "username doit faire au moins 3 caractères").max(20),
-  email:    z.string().email("email invalide"),
+  email:    z.email("email invalide"),
   password: z.string().min(6, "password doit faire au moins 6 caractères")
 });
 
 const LoginSchema = z.object({
-  email:    z.string().email("email invalide"),
+  email:    z.email("email invalide"),
   password: z.string().min(1, "password requis")
 });
 
@@ -21,7 +22,7 @@ const LoginSchema = z.object({
 // Body : { username, email, password }   (validé par RegisterSchema)
 // Réponse : { token, user }
 // ═══════════════════════════════════════════════════════════════
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
   const result = RegisterSchema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({ error: result.error.issues[0].message });
@@ -41,6 +42,8 @@ router.post('/register', (req, res) => {
     createdAt: new Date().toISOString()
   };
   users.push(newUser);
+
+  await sendWelcomeEmail(newUser);
 
   res.status(201).json({
     token: `user-${newUser.id}`,

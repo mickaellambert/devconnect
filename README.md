@@ -1,158 +1,66 @@
-# DevConnect — Jour 2 (Point de départ)
+# DevConnect — Jour 2 (Correction)
 
-Bienvenue sur le **jour 2** de DevConnect ! Aujourd'hui, on apprend à **intégrer des bibliothèques externes** dans une API Node existante.
+Cette branche contient la **correction complète** du jour 2 : les 3 ateliers (`dotenv`, `zod`, `nodemailer`) sont implémentés.
 
----
-
-## 🎯 Ce que tu vas apprendre
-
-- Évaluer et intégrer une **bibliothèque externe** dans un projet
-- Lire une **doc technique** (et apprendre à le faire en autonomie)
-- Séparer **configuration** et **code** avec des variables d'environnement
-- Valider proprement les inputs d'une API avec un **schéma déclaratif**
-- Connecter ton API à un **service externe** (un serveur SMTP)
-
-> 💡 **Format aujourd'hui** : autonomie. Pas de cours frontal. Le contenu théorique de chaque atelier est sur **Notion**. Tu lis, tu codes, tu testes. Le formateur passe entre les postes pour répondre aux questions.
-
----
-
-## ✅ Prérequis (à vérifier avant de commencer)
+## 🚀 Lancer
 
 ```bash
-node --version    # v22.x ou plus
-npm --version     # 10.x ou plus
-git --version     # 2.x
-```
-
-Si tu reviens sur ton ordi après le J1, tu es déjà prêt.
-
----
-
-## 🚀 Installation
-
-### Si tu reprends ton repo du J1
-
-```bash
-cd devconnect
-git fetch origin
-git checkout j2/start
-npm install     # ← important, on a 3 nouvelles dépendances aujourd'hui
-```
-
-### Si tu pars d'un repo neuf
-
-```bash
-git clone git@github.com:mickaellambert/devconnect.git
-cd devconnect
-git checkout j2/start
-npm install
-```
-
-### Crée ton `.env` à partir du modèle
-
-```bash
-cp .env.example .env
-```
-
-Tu verras au cours de l'atelier 1 et 3 comment le compléter.
-
-### Lance le serveur
-
-```bash
+npm install                # installe toutes les deps (express + nodemon + dotenv + zod + nodemailer)
+cp .env.example .env       # si pas déjà fait
+# Renseigne tes credentials Ethereal dans .env (cf. atelier 3 du J2)
 npm run dev
 ```
 
-Le serveur démarre sur [http://localhost:4000](http://localhost:4000). Tu peux te connecter avec `alice@devconnect.io` / n'importe quel password (cf. J1).
+Le serveur démarre sur le port défini dans `.env` (par défaut `4000`).
 
----
+## 📜 Historique git de cette branche
 
-## 🧭 Par où commencer ?
-
-L'ordre recommandé. **Ne saute pas un atelier**.
-
-### 📨 Atelier 1 — `dotenv` (~30 min)
-
-1. Lis la page Notion **"Atelier 1 — Variables d'environnement"**
-2. Ouvre `index.js`
-3. Cherche `🔧 ATELIER 1` (Ctrl+F)
-4. Suis les étapes dans les commentaires
-
-### 🛡️ Atelier 2 — `zod` (~1h15)
-
-1. Lis la page Notion **"Atelier 2 — Validation avec zod"**
-2. Ouvre `routes/posts.js`, cherche `🔧 ATELIER 2`. Traite la route.
-3. Puis ouvre `routes/auth.js`, cherche `🔧 ATELIER 2`. Traite `/register`.
-4. 🎁 Bonus : pareil pour `/login` (commentaire `🎁 BONUS — ATELIER 2`)
-
-### 📧 Atelier 3 — `nodemailer` (~2h)
-
-> ⚠️ **AVANT de coder**, crée ton compte Ethereal :
-> 1. [https://ethereal.email/create](https://ethereal.email/create) → Create Ethereal Account
-> 2. Recopie tes 4 valeurs (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`) dans ton `.env`
-
-1. Lis la page Notion **"Atelier 3 — Envoi de mails"**
-2. Ouvre `services/email.js`, cherche `🔧 ATELIER 3`. Traite les étapes 1 et 2.
-3. Puis ouvre `routes/auth.js`, cherche `🔧 ATELIER 3`. Traite l'étape 3 (le branchement).
-
----
-
-## 🗂️ Structure du projet (rappel + nouveautés)
-
-```
-devconnect/
-├── .env                        🆕 tes credentials locaux (jamais commité)
-├── .env.example                🆕 modèle pour l'équipe (commité)
-├── index.js                    ✏️ à modifier (Atelier 1)
-├── data/                       🔒 inchangé
-├── middleware/                 🔒 inchangé
-├── public/                     🔒 inchangé (front toujours figé)
-├── routes/
-│   ├── auth.js                 ✏️ à modifier (Ateliers 2 + 3)
-│   ├── users.js                🔒 inchangé
-│   └── posts.js                ✏️ à modifier (Atelier 2)
-└── services/
-    └── email.js                🆕 à compléter (Atelier 3)
-```
-
----
-
-## 📋 Récap des 3 ateliers
-
-| # | Atelier | Lib | Difficulté | Trous |
-|---|---------|-----|-----------|-------|
-| 1 | Variables d'environnement | `dotenv` | Facile | 1 (modif `index.js`) |
-| 2 | Validation des inputs | `zod` | Moyen | 2 (+1 bonus) |
-| 3 | Envoi de mails | `nodemailer` | Difficile | 3 (+2 bonus) |
-
----
-
-## 🧪 Tester tes routes
-
-### Avec Thunder Client
-
-Comme au J1. N'oublie pas le header `Authorization: Bearer user-1` sur les routes protégées.
-
-### Dans le navigateur
-
-Le front fourni au J1 fonctionne **toujours pareil** : il ne sait pas qu'on a refait certaines validations en interne. C'est la magie d'un **contrat HTTP stable**.
-
-→ Si une route que tu modifies casse le front (timeline qui ne charge plus, login qui plante), c'est que tu as cassé le contrat. Vérifie tes réponses.
-
----
-
-## ⚠️ "J'ai un bug, j'ai pas le mail, ma route répond pas…"
-
-Pour chaque atelier, la page Notion a une section **"Pièges classiques"** et **"Coincé ?"** — c'est ton premier réflexe.
-
-Si tu es vraiment bloqué, tu peux comparer ton fichier avec celui de la branche `j2/solution` :
+Trois commits, un par atelier — chaque atelier ajoute sa lib via `npm install <lib>` (cohérent avec ce qu'ils ont vu hier au J1 avec `chalk`) :
 
 ```bash
-# Dans un autre terminal, depuis la racine du projet :
-git diff j2/solution -- <le fichier qui te pose problème>
+git log --oneline j2/solution
+# (sha) feat(j2): solve nodemailer exercise
+# (sha) feat(j2): solve zod exercise
+# (sha) feat(j2): solve dotenv exercise
+# (sha) feat(j2): scaffold ateliers dotenv + zod + nodemailer  ← j2/start
 ```
 
----
+Tu peux faire `git diff <commit_précédent>..<commit>` pour voir **exactement** ce qui a changé à chaque atelier (incluant le `package.json` qui s'enrichit progressivement).
 
-## 💪 Go !
+## 💡 Points pédagogiques clés
 
-Commence par l'**Atelier 1**. C'est le plus court et le plus simple — il te met dans le rythme et il pose les bases pour les ateliers 2 et 3. Bon code ! 🚀
+### `.env` : la séparation config / code
+
+`PORT`, et désormais les credentials SMTP, vivent dans le fichier `.env` qui n'est **jamais commité** (cf. `.gitignore`). Pour passer en production, on change le `.env` — le code ne bouge pas. C'est l'**abstraction config-driven**.
+
+> 📌 **À noter** : `process.env.X` est **toujours une string**. Si tu attends un nombre (port, durée…), convertis avec `Number()`. C'est le cas pour `PORT` ici et pour `SMTP_PORT` dans `services/email.js`.
+
+### `zod` vs validation manuelle
+
+```js
+// Avant J1 : verbeux, fragile
+if (!username || !email || !password) return res.status(400)…
+
+// Après J2 : déclaratif, robuste
+const result = RegisterSchema.safeParse(req.body);
+if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
+```
+
+`safeParse` est préféré à `parse` (pas d'exception, pas de try/catch).
+
+### Nodemailer : un service externe via SMTP
+
+Le `transporter` encapsule la config SMTP. La fonction `sendWelcomeEmail` est asynchrone : la route `/register` est devenue `async` et `await`-e l'envoi. En passant de Ethereal (test) à Gmail (prod), on change uniquement les variables `SMTP_*` dans `.env`.
+
+### Le contrat HTTP est resté stable
+
+Le front du J1 fonctionne toujours **sans modification**, alors qu'on a changé l'implémentation de plusieurs routes. C'est le bénéfice du contrat HTTP figé qu'on a posé en architecture J1.
+
+## 🎁 Bonus implémentés
+
+- ✅ `POST /auth/login` validé avec zod (`LoginSchema`)
+- ❌ `sendLikeNotification` — laissé en exercice ouvert dans la branche, libre à toi de l'implémenter
+
+## 🔜 Au J3
+
+On va sécuriser le login (bcrypt + JWT) et migrer les données de `data/` vers une vraie base SQLite avec **Prisma**. Le `.env` qu'on a appris aujourd'hui aura un nouveau locataire : `DATABASE_URL` (déjà préparé dans `.env.example`). À bientôt !
