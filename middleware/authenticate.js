@@ -1,23 +1,23 @@
-import { users } from '../data/users.js';
+import { prisma } from '../prisma/client.js';
 
 // ═══════════════════════════════════════════════════════════════
-// Middleware d'authentification — VERSION FAKE pour J1 et J2
+// Middleware d'authentification — VERSION FAKE pour J3
 // ═══════════════════════════════════════════════════════════════
 // Ce middleware lit le header `Authorization: Bearer user-<id>` envoyé
-// par le client, retrouve le user correspondant et l'attache à la
-// requête sous `req.user`.
+// par le client, retrouve le user correspondant en BASE DE DONNÉES
+// (via Prisma) et l'attache à la requête sous `req.user`.
 //
 // ⚠️ Version temporaire, non sécurisée (n'importe qui peut écrire
-// `Bearer user-2` et se faire passer pour n'importe qui). Au J3, on
-// remplacera ce middleware par une vraie vérification de jeton JWT
+// `Bearer user-2` et se faire passer pour quelqu'un d'autre). Au J4,
+// ce middleware sera remplacé par une vraie vérification de jeton JWT
 // signé cryptographiquement — le contrat HTTP ne changera pas.
 //
-// Usage :
-//   app.use(authenticate);            → tente d'identifier l'user
-//   app.use('/x', requireAuth, ...);  → refuse si pas authentifié
+// 💡 Ce fichier est FOURNI DÉJÀ MIGRÉ vers Prisma. Sers-t'en comme
+// modèle pour migrer les autres routes : tu vois comment on remplace
+// `users.find(u => u.id === id)` par `prisma.user.findUnique(...)`.
 // ═══════════════════════════════════════════════════════════════
 
-export function authenticate(req, res, next) {
+export async function authenticate(req, res, next) {
   const header = req.header('Authorization');
 
   if (header && header.startsWith('Bearer ')) {
@@ -25,7 +25,7 @@ export function authenticate(req, res, next) {
     const match = token.match(/^user-(\d+)$/);
     if (match) {
       const id = Number(match[1]);
-      const user = users.find(u => u.id === id);
+      const user = await prisma.user.findUnique({ where: { id } });
       if (user) {
         req.user = user;
       }

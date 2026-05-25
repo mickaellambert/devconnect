@@ -25,3 +25,9 @@ Thumbs.db
 
 # Coverage
 coverage/
+
+# Prisma — la base SQLite locale est régénérée par les migrations et le seed,
+# pas besoin de la commiter. Les migrations elles-mêmes (dossier prisma/migrations)
+# sont commitées avec le code.
+prisma/dev.db
+prisma/dev.db-journal

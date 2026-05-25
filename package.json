@@ -8,10 +8,15 @@
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "dotenv": "^17.4.2",
     "express": "^4.21.2",
     "nodemailer": "^8.0.7",
+    "prisma": "^6.19.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
