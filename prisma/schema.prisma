@@ -80,6 +80,13 @@ generator client {
 
 // Écris ton model User ci-dessous :
 
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
 
 // ═══════════════════════════════════════════════════════════════
 // 🔧 ATELIER 2 — À TOI DE JOUER : écris le modèle Post (relation 1-N)
