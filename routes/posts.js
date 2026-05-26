@@ -98,41 +98,42 @@ function toApi(post) {
 //   POST   /posts  body: { "content": "Hello DB" }  → 201 + post créé
 // ═══════════════════════════════════════════════════════════════
 
-// ─── GET /posts (timeline) — À MIGRER ──────────────────────────
-router.get('/', (req, res) => {
-  res.json(posts);
+// ─── GET /posts (timeline) ─────────────────────────────────────
+router.get('/', async (req, res) => {
+  const dbPosts = await prisma.post.findMany({
+    include: { likes: true }
+  });
+  res.json(dbPosts.map(toApi));
 });
 
-// ─── GET /posts/:id (détail) — À MIGRER ────────────────────────
-router.get('/:id', (req, res) => {
+// ─── GET /posts/:id (détail) ───────────────────────────────────
+router.get('/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const post = posts.find(p => p.id === id);
+  const post = await prisma.post.findUnique({
+    where: { id },
+    include: { likes: true }
+  });
 
   if (!post) {
     return res.status(404).json({ error: "Post non trouvé" });
   }
 
-  res.json(post);
+  res.json(toApi(post));
 });
 
-// ─── POST /posts (création) — À MIGRER ─────────────────────────
-router.post('/', (req, res) => {
+// ─── POST /posts (création) ────────────────────────────────────
+router.post('/', async (req, res) => {
   const result = PostSchema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({ error: result.error.issues[0].message });
   }
   const { content } = result.data;
 
-  const newPost = {
-    id: Math.max(...posts.map(p => p.id)) + 1,
-    userId: req.user.id,
-    content,
-    likes: [],
-    createdAt: new Date().toISOString()
-  };
+  const newPost = await prisma.post.create({
+    data: { userId: req.user.id, content }
+  });
 
-  posts.push(newPost);
-  res.status(201).json(newPost);
+  res.status(201).json(toApi(newPost));
 });
 
 
@@ -201,39 +202,48 @@ router.post('/', (req, res) => {
 //    coupe/relance le serveur, recharge → tout est persisté.
 // ═══════════════════════════════════════════════════════════════
 
-// ─── PUT /posts/:id/likes (like) — À MIGRER ────────────────────
-router.put('/:id/likes', (req, res) => {
+// ─── PUT /posts/:id/likes (like) ───────────────────────────────
+router.put('/:id/likes', async (req, res) => {
   const postId = Number(req.params.id);
   const userId = req.user.id;
 
-  const post = posts.find(p => p.id === postId);
+  const post = await prisma.post.findUnique({ where: { id: postId } });
   if (!post) {
     return res.status(404).json({ error: "Post non trouvé" });
   }
 
-  if (post.likes.includes(userId)) {
-    return res.status(200).json(post);
+  const existing = await prisma.like.findUnique({
+    where: { userId_postId: { userId, postId } }
+  });
+  if (existing) {
+    return res.status(409).json({ error: "Tu as déjà liké ce post" });
   }
 
-  post.likes.push(userId);
-  res.status(201).json(post);
+  await prisma.like.create({ data: { userId, postId } });
+
+  const updated = await prisma.post.findUnique({
+    where: { id: postId },
+    include: { likes: true }
+  });
+  res.status(201).json(toApi(updated));
 });
 
-// ─── DELETE /posts/:id/likes (unlike) — À MIGRER ───────────────
-router.delete('/:id/likes', (req, res) => {
+// ─── DELETE /posts/:id/likes (unlike) ──────────────────────────
+router.delete('/:id/likes', async (req, res) => {
   const postId = Number(req.params.id);
   const userId = req.user.id;
 
-  const post = posts.find(p => p.id === postId);
-  if (!post) {
-    return res.status(404).json({ error: "Post non trouvé" });
-  }
-
-  if (!post.likes.includes(userId)) {
+  const existing = await prisma.like.findUnique({
+    where: { userId_postId: { userId, postId } }
+  });
+  if (!existing) {
     return res.status(404).json({ error: "Aucun like à supprimer" });
   }
 
-  post.likes = post.likes.filter(id => id !== userId);
+  await prisma.like.delete({
+    where: { userId_postId: { userId, postId } }
+  });
+
   res.status(204).send();
 });
 
