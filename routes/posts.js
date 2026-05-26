@@ -26,7 +26,6 @@
 import express from 'express';
 import { z } from 'zod';
 import { prisma } from '../prisma/client.js';
-import { posts } from '../data/posts.js'; // ← legacy : à supprimer une fois TOUT migré
 
 const router = express.Router();
 
