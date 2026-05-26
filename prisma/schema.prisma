@@ -85,6 +85,8 @@ model User {
   username  String   @unique
   email     String   @unique
   createdAt DateTime @default(now())
+  posts     Post[]
+  likes     Like[]
 }
 
 
@@ -163,6 +165,15 @@ model User {
 // ═══════════════════════════════════════════════════════════════
 
 // Écris ton model Post ci-dessous :
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+  likes     Like[]
+}
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -259,3 +270,13 @@ model User {
 // ═══════════════════════════════════════════════════════════════
 
 // Écris ton model Like ci-dessous :
+
+model Like {
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@id([userId, postId])
+}
