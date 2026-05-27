@@ -1,180 +1,300 @@
-# DevConnect — Jour 3 (Correction)
+# DevConnect — Jour 4 (Point de départ)
 
-Cette branche contient la **correction complète** du jour 3 :
+Bienvenue sur le **jour 4** de DevConnect ! Aujourd'hui, on s'attaque à la **sécurité d'authentification** : hash de mot de passe avec **bcrypt** et tokens signés avec **JWT**. À la fin, ton app aura un niveau de sécu comparable à ce qu'on trouve en prod.
 
-- **Atelier 1** : migration des routes `User` vers Prisma + SQLite
-- **Atelier 2 — Étape 0** : Post (1-N) + Like (N-N + clé composite) + 2 migrations + seed
-- **Atelier 2 — Partie A & B** : migration des routes `/posts` (Posts + Likes via clé composite)
+> 💡 Tu pars de l'état final du J3 : DB SQLite avec User + Post + Like, toutes les routes migrées vers Prisma. Deux trous de sécurité béants restent à boucher :
+> 1. Les mots de passe ne sont pas hashés (ils sont juste ignorés côté logique au J3).
+> 2. Le token `Bearer user-2` permet à n'importe qui de se faire passer pour Bob en tapant son id.
 
-À la fin de cette branche, **toute** la couche "données en mémoire" du J1/J2 est remplacée par une vraie base SQLite. Les fichiers `data/users.js` et `data/posts.js` ont été supprimés.
+---
 
-> 🎯 **Le contrat HTTP est resté EXACTEMENT le même** que le J2 (notamment `post.likes` au format tableau d'ids `[3, 5]`). Le front fourni au J1 n'a pas bougé d'une ligne, grâce au helper `toApi()`.
+## 🎯 Programme de la journée
 
-## 🚀 Lancer
+| Slot | Quoi |
+|------|------|
+| Matin (~1h30) | Cours : hash + salt (bcrypt) + JWT (header.payload.signature, démo jwt.io) |
+| Pause déjeuner | |
+| **Atelier 1 (~1h45)** | Migration `add-password` + hash bcrypt dans `/register` et `/login` |
+| Correction live coding atelier 1 (~30-45 min) | |
+| **Atelier 2 (~1h45)** | Remplacer le token fake `Bearer user-N` par un vrai JWT signé |
+| Correction live coding atelier 2 (~30 min) | |
+
+---
+
+## ✅ Prérequis
 
 ```bash
+node --version    # v22.x ou plus
+npm --version     # 10.x ou plus
+```
+
+Tu dois avoir l'app du J3 qui tourne : timeline, login, like fonctionnent.
+
+---
+
+## 🚀 Installation
+
+### Si tu reprends ton repo du J3
+
+```bash
+git fetch origin
+git checkout j4/start
+npm install     # ← important, on a ajouté bcrypt + jsonwebtoken
+```
+
+### Si tu pars d'un repo neuf
+
+```bash
+git clone git@github.com:mickaellambert/devconnect.git
+cd devconnect
+git checkout j4/start
 npm install
-cp .env.example .env                           # si pas déjà fait
-npx prisma migrate dev                         # applique les 3 migrations (init + add-posts + add-likes)
-npx prisma db seed                             # peuple la base (5 users + 10 posts + 21 likes)
+cp .env.example .env
+npx prisma migrate dev    # applique les 3 migrations héritées du J3
+npx prisma db seed        # peuple 5 users + 10 posts + 21 likes
 npm run dev
 ```
 
-Le serveur démarre sur [http://localhost:4000](http://localhost:4000).
+Vérifie que tu te connectes via `POST /auth/login` avec `alice@devconnect.io` (n'importe quel password, il est ignoré aujourd'hui — on va corriger ça à l'atelier 1).
 
-## 📜 Historique git de cette branche
+---
+
+## 🛠️ Atelier 1 — bcrypt + migration `add-password`
+
+**Objectif** : ajouter la colonne `password` au model User, hasher les passwords avec bcrypt, et vérifier au login.
+
+### 📖 Vocabulaire éclair atelier 1
+
+| Terme | Définition courte |
+|-------|------|
+| **Hash** | Fonction à sens unique : on transforme `"demo"` en `$2b$10$Eix…` mais on ne peut pas remonter à `"demo"` depuis le hash. C'est ce qu'on stocke en DB. |
+| **Salt** | Une chaîne aléatoire glissée dans le hash. Conséquence : 2 users avec le même password `demo` ont quand même 2 hashes **différents** en DB. bcrypt le gère tout seul, tu n'as rien à faire. |
+| **`saltRounds`** | Le coût de calcul du hash. `10` = standard recommandé. Plus c'est élevé, plus c'est lent (pour toi ET pour un attaquant). |
+| **`bcrypt.hash(motDePasse, 10)`** | Hashe un mot de passe en clair. À utiliser au register, avant d'écrire en DB. |
+| **`bcrypt.compare(motDePasse, hash)`** | Compare un mot de passe en clair avec un hash. Renvoie `true` / `false`. À utiliser au login. |
+| **Migration sur table peuplée** | Ajouter une colonne `NOT NULL` à une table qui a déjà des lignes = problème classique de prod. En dev, on a un raccourci : on jette la DB. |
+
+### 📐 Les étapes
+
+- **Étape 0 — DB (~30 min)** : ajouter `password` au schema, **regarder Prisma râler**, faire le hard-reset.
+- **Étape 1 — Seed (~15 min)** : ajouter `bcrypt.hash("demo", 10)` dans `prisma/seed.js`.
+- **Étape 2 — Routes auth (~45 min)** : `bcrypt.hash` au register (2A), `bcrypt.compare` au login (2B).
+- **Étape 3 — Anti-fuite (~15 min)** : helper `toPublicUser` + `publicUserSelect` pour ne pas re-exposer le hash via l'API.
+
+> ⚠️ Le `token: \`user-${id}\`` reste **FAKE** à la fin de l'atelier 1. On le remplace par un vrai JWT à l'atelier 2.
+
+### Les fichiers à modifier
+
+| Fichier | Trou |
+|---------|------|
+| `prisma/schema.prisma` | Ajouter `password String` au model User |
+| `prisma/seed.js` | Hasher `"demo"` avant chaque insert |
+| `routes/auth.js` — `/register` | `bcrypt.hash(...)` avant `create` (Étape 2A) |
+| `routes/auth.js` — `/login` | `bcrypt.compare(...)` avant le succès (Étape 2B) |
+| `routes/auth.js` + `routes/users.js` | Ne pas exposer le hash dans les réponses (Étape 3) |
+
+Tous les emplacements sont marqués `🔧 ATELIER 1` / `🔧 ÉTAPE X` dans les fichiers. Cherche avec **Ctrl+F**.
+
+### 📋 Ordre conseillé
+
+#### Étape 0.1 — Ajouter `password` au schema
+
+Ouvre `prisma/schema.prisma`, trouve `🔧 ATELIER 1`, et ajoute dans le model User :
+
+```prisma
+password  String
+```
+
+#### Étape 0.2 — Lancer la migration → **elle va planter**
 
 ```bash
-git log --oneline j3/solution
-# (sha) chore(j3): remove legacy data/posts.js + finalize solution README
-# (sha) feat(j3): solve atelier 2 routes — Posts (Partie A) + Likes (Partie B)
-# (sha) feat(j3): atelier 2 étape 0 — Post & Like models + migrations
-# (sha) chore(j3): remove legacy data/users.js
-# (sha) feat(j3): solve atelier 1 — user routes migration to prisma
-# (sha) feat(j3): scaffold prisma + ateliers 1 & 2 (users + posts/likes) ← j3/start
+npx prisma migrate dev --name add-password
 ```
 
-Les commits sont **incrémentaux** : un commit par étape pédagogique. Tu peux faire `git checkout <sha>` pour explorer l'état du repo après chaque étape.
+Prisma va t'engueuler avec un message du genre :
+> ⚠ A migration failed... `Added the required column 'password' to the User table without a default value. There are 5 rows in this table, it is not possible to execute this step.`
 
-## 💡 Points pédagogiques clés
+**C'est normal et c'est l'objectif pédagogique** : tu vis le vrai problème "ajouter une colonne NOT NULL à une table peuplée".
 
-### Le passage du tableau JS à la base de données
+> 💡 **`--create-only`** : Prisma te suggère dans son message d'erreur d'utiliser `prisma migrate dev --create-only`. C'est la stratégie prod (créer le `.sql` à la main et y ajouter un backfill). On ne l'utilise pas dans cet atelier — on prend le raccourci dev (jeter la DB).
+
+#### Étape 0.3 — Hard-reset (OK en dev, **JAMAIS en prod**)
+
+```bash
+rm prisma/dev.db                                        # supprime la DB locale
+npx prisma migrate dev --name add-password --skip-seed  # ré-applique tout SANS seeder
+```
+
+> ⚠️ **Pourquoi `--skip-seed`** ? Sans ce flag, Prisma lance auto le seed après avoir recréé la DB. Mais le seed n'a pas encore été modifié pour fournir le `password` → il planterait. On l'adapte à l'étape suivante.
+
+<details>
+<summary>💭 Et en prod, on ferait comment ? (replié — pour curieux)</summary>
+
+Jeter la DB est OK en dev parce qu'elle ne contient que tes seedés. En prod tu perdrais tous tes vrais utilisateurs. Les stratégies prod ressemblent à :
+
+- Ajouter la colonne en `nullable` d'abord, **backfiller** les valeurs (via SQL ou script), puis passer en `NOT NULL` dans une 2ᵉ migration.
+- OU ajouter la colonne `NOT NULL` avec un **default temporaire** (ex. `""`) puis re-itérer.
+
+On en reparle en correction live coding. Pour l'atelier, raccourci dev.
+
+</details>
+
+#### Étape 1 — Modifier `prisma/seed.js`
+
+Ajoute `bcrypt` et hash `"demo"` avant la boucle des users (suis le `🔧 ATELIER 1 J4` dans le fichier).
+
+```bash
+npx prisma db seed    # → 5 users avec password = hash de "demo"
+```
+
+Va voir dans Prisma Studio (`npx prisma studio`) : la colonne `password` ressemble à `$2b$10$...`.
+
+#### Étape 2 — Migrer `/register` et `/login`
+
+Suis les commentaires `🔧 ATELIER 1` dans `routes/auth.js`.
+
+#### Étape 3 — Ne pas exposer le hash dans les réponses
+
+Quand tu testes `/auth/login` avec Thunder Client après l'étape 2, tu remarques un truc dérangeant : la réponse contient `user.password` (le hash). Idem dans `GET /users/:id`.
+
+**On vient de cacher le password en DB, on ne va pas le ré-exposer via l'API.**
+
+- Dans `routes/auth.js` → écris un helper `toPublicUser(user)` qui retire la clé `password`, puis utilise-le dans les `res.json(...)` de /register et /login. (Marqueurs `🔧 ÉTAPE 3`.)
+- Dans `routes/users.js` → définis une constante `publicUserSelect` (les colonnes publiques) et passe-la à Prisma via `select: publicUserSelect`. (Marqueurs `🔧 ÉTAPE 3`.)
+
+**Pourquoi deux patterns différents ?** Côté auth on a **besoin** de fetcher le password (pour `bcrypt.compare`), on le strip après. Côté users on n'en a pas besoin → on ne le fetch même pas. On en reparle en correction.
+
+### 🎯 Tu viens de boucher 1 des 2 trous de sécurité
+
+Les passwords sont maintenant hashés en DB **et** ne fuient plus via l'API. Reste le 2ᵉ trou : le token `Bearer user-N` qu'on peut encore falsifier. On l'attaque à l'atelier 2.
+
+### ✅ Critère de réussite atelier 1
+
+| Test | Résultat attendu |
+|------|------------------|
+| `POST /auth/login` avec `alice@devconnect.io` + `demo` | 200 + token (encore fake `user-1`) |
+| `POST /auth/login` avec `alice@devconnect.io` + `wrong` | **401** |
+| `POST /auth/register` avec un nouveau user | 201 + token, password hashé en DB |
+| `POST /auth/register` avec un email déjà pris | 409 |
+| Après BONUS : la réponse `/login` **ne contient PAS** `user.password` | ✅ |
+| Après BONUS : `GET /users/1` **ne contient PAS** `password` | ✅ |
+
+### 🆘 Coincé ? (atelier 1)
+
+1. **Migration plante à l'étape 0.2** → c'est normal et c'est l'objet de l'étape. Hard-reset (0.3) puis re-migrate avec `--skip-seed`.
+2. **Seed plante avec `NOT NULL constraint failed: User.password`** → tu n'as pas encore mis `password: passwordHash` dans le `create` du seed. Va voir `🔧 ATELIER 1 J4` dans `prisma/seed.js`.
+3. **Login passe avec n'importe quel password** → tu as oublié `await` devant `bcrypt.compare` (voir l'encart sécurité dans le commentaire `/login`).
+4. **`bcrypt` ne s'installe pas** (compile error sur certains setups) → alternative `npm install bcryptjs` (API compatible, plus lent au runtime mais install trivial). Remplace l'import par `import bcrypt from 'bcryptjs'`.
+
+---
+
+## 🛠️ Atelier 2 — JWT
+
+**Objectif** : remplacer le token fake `Bearer user-N` par un vrai **JSON Web Token** signé cryptographiquement.
+
+### 📖 Vocabulaire éclair atelier 2
+
+| Terme | Définition courte |
+|-------|------|
+| **JWT** | "JSON Web Token". Une string de la forme `xxx.yyy.zzz` (3 parties séparées par `.`). Utilisée comme badge d'identification que le serveur émet et vérifie. |
+| **Header** | 1ʳᵉ partie. JSON encodé en base64. Indique l'algo de signature : `{ alg: "HS256", typ: "JWT" }`. |
+| **Payload** | 2ᵉ partie. JSON encodé en base64. Contient les "claims" : `{ sub, iat, exp, ... }`. **LISIBLE PAR TOUS** — ne jamais y mettre de secret. |
+| **Signature** | 3ᵉ partie. `HMAC-SHA256(header.payload, secret)`. Garantit que personne n'a modifié le token sans connaître le secret. |
+| **`JWT_SECRET`** | La clé secrète serveur. Sert à signer ET à vérifier. C'est le SEUL gardien du système. Stockée dans `.env`. |
+| **Claim `sub`** | "Subject". Le claim standard JWT pour identifier le sujet du token. Chez nous : l'id du user. |
+| **`exp`** | Timestamp d'expiration. Inclus automatiquement par `jwt.sign(..., { expiresIn: '24h' })`. Vérifié automatiquement par `jwt.verify`. |
+| **`jwt.sign(payload, secret, options)`** | Crée un JWT signé. À utiliser au login/register. |
+| **`jwt.verify(token, secret)`** | Vérifie la signature ET l'expiration. Throw si invalide. À utiliser dans le middleware. |
+
+### 📐 La structure en 3 temps
+
+- **Étape 1 — Signer (~30 min)** : remplacer `token: \`user-${id}\`` par `jwt.sign({ sub: id }, secret, { expiresIn })` dans `/register` et `/login`.
+- **Étape 2 — Vérifier (~30 min)** : remplacer le regex `^user-(\d+)$` par `jwt.verify(token, secret)` dans `middleware/authenticate.js`.
+- **Étape 3 — Inspecter sur jwt.io (~10 min)** : décoder son propre token, comprendre la structure visuelle.
+- **Étape 4 — Tester côté front (~10 min)** : vérifier que le contrat HTTP reste stable.
+
+### Les fichiers à modifier
+
+| Fichier | Trou |
+|---------|------|
+| `routes/auth.js` — `/register` | `jwt.sign({ sub: newUser.id }, secret, { expiresIn })` |
+| `routes/auth.js` — `/login` | Idem (`{ sub: user.id }`) |
+| `middleware/authenticate.js` | Remplacer regex par `jwt.verify` + try/catch |
+
+Cherche `🔧 ATELIER 2` dans les fichiers.
+
+### 📋 Ordre conseillé
+
+#### Étape 1 — Signer les JWT au login/register
+
+Dans `routes/auth.js`, importe `jsonwebtoken` et remplace les deux `token: \`user-${id}\`` par :
 
 ```js
-// AVANT (J1/J2)                       // APRÈS (J3)
-const user = users.find(u => u.id === id);
-                                       const user = await prisma.user.findUnique({
-                                         where: { id }
-                                       });
+token: jwt.sign({ sub: newUser.id }, process.env.JWT_SECRET, { expiresIn: '24h' })
 ```
 
-L'API reste **identique** côté HTTP. Le front fourni au J1 continue de marcher **sans aucune modification**. C'est la promesse du **contrat HTTP stable** qu'on s'est fixé depuis le J1.
+(Et idem dans `/login` avec `user.id` au lieu de `newUser.id`.)
 
-### Le seed — robuste, idempotent, ergonomique
+#### Étape 2 — Vérifier les JWT au middleware
 
-Le fichier `prisma/seed.js` reproduit les 5 users + 10 posts + 21 likes qu'on avait en dur au J1/J2. **Au redémarrage du serveur, les données restent** — différence majeure avec le mode "tableau en mémoire" qui perdait tout.
+Dans `middleware/authenticate.js`, importe `jsonwebtoken`. Suis les étapes a/b/c du commentaire `🔧 ATELIER 2` pour remplacer le bloc regex par un `jwt.verify` enveloppé dans un try/catch.
 
-Le seed a trois propriétés importantes :
+#### Étape 3 — Décoder ton JWT sur [jwt.io](https://jwt.io)
 
-1. **Dégradation gracieuse** : il fonctionne après l'atelier 1 (juste users), après l'étape 0 partielle (users + posts), et après l'étape 0 complète (users + posts + likes). Il détecte ce qui existe via `typeof prisma[name]?.deleteMany`.
-2. **Idempotent** : tu peux le re-lancer autant de fois que tu veux. Les ids restent stables (`1..5` pour les users) grâce à un reset de `sqlite_sequence` (SQLite ne le fait pas tout seul).
-3. **Affiche les credentials** : à la fin de chaque run, le seed log dans le terminal le mapping `email → Bearer user-N` — pratique pour tester via Thunder Client sans aller chercher les ids dans Prisma Studio.
+C'est **le moment "aha" de l'atelier**. Récupère un token via Thunder Client :
 
-### Les migrations versionnées
-
-Le dossier `prisma/migrations/` contient les fichiers `.sql` que Prisma a générés. Ils sont **commités dans git** : ton historique de la structure de DB devient un historique versionné, exactement comme celui de ton code.
-
-```
-prisma/migrations/
-├── 20260526_..._init/migration.sql        ← atelier 1 : table User
-├── 20260526_..._add_posts/migration.sql   ← atelier 2 étape 0 : table Post + FK
-└── 20260526_..._add_likes/migration.sql   ← atelier 2 étape 0 : table Like + clé composite
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"email":"alice@devconnect.io","password":"demo"}' \
+  http://localhost:4000/auth/login
 ```
 
-Chaque migration est **incrémentale** : elle ne re-crée pas tout, elle ajoute juste ce qui est nouveau.
+Copie le `token` de la réponse, va sur [https://jwt.io](https://jwt.io), colle dans la box de gauche. Tu vois le header + payload décodés. Le payload contient `{ "sub": 1, "iat": ..., "exp": ... }`.
 
-### `findUnique` vs `findMany` vs `findFirst`
+Modifie maintenant **1 caractère du payload** sur jwt.io (par exemple `sub: 2`). La signature devient **rouge** ❌ — jwt.io te dit que le token n'est plus valide. Colle ce token modifié dans Thunder Client : tu reçois **401**. **La signature est le seul garde-fou.**
 
-- **`findMany`** : récupère plusieurs lignes. Toujours sûr à utiliser (renvoie `[]` si rien trouvé).
-- **`findUnique`** : récupère **une** ligne par une colonne **unique** (id, email…). Rapide (indexé). Renvoie `null` si rien trouvé.
-- **`findFirst`** : récupère **une** ligne par une condition quelconque. Plus lent (scan).
+> 💡 Pour observer l'expiration en live (sans attendre 24h), tu peux temporairement remplacer `expiresIn: '24h'` par `'5s'` dans `routes/auth.js`, login, attends 6 secondes, puis fais une requête : tu auras 401. Remets `'24h'` après.
 
-Dans cette branche on utilise quasi exclusivement `findUnique` (colonne unique → optimal).
+#### Étape 4 — Test côté front
 
-### Relation 1-N (User ↔ Post)
+Ouvre [http://localhost:4000](http://localhost:4000), connecte-toi avec `alice@devconnect.io` / `demo`. La timeline doit s'afficher comme d'habitude. Ouvre DevTools → Console → `localStorage.getItem('devconnect.token')` : tu vois un JWT.
 
-```prisma
-model Post {
-  userId Int
-  user   User @relation(fields: [userId], references: [id])
-}
+**Le front n'a pas bougé d'une ligne pour passer de `user-1` à `eyJhbGci...`.** C'est la promesse du contrat HTTP stable depuis le J1.
 
-model User {
-  posts Post[]   // côté "1" : un user a plusieurs posts
-}
-```
+### ✅ Critère de réussite atelier 2
 
-La relation est déclarée des **deux côtés** : `userId` + `user` côté Post (le "N"), et `posts Post[]` côté User (le "1"). C'est ce qui permet à Prisma d'inclure les posts d'un user (`include: { posts: true }`) ou l'auteur d'un post (`include: { user: true }`).
+| Test | Résultat attendu |
+|------|------------------|
+| `POST /auth/login` | 200 + `token` au format `xxx.yyy.zzz` |
+| Coller le token sur jwt.io | Voir `{ "sub": 1, "iat": ..., "exp": ... }` |
+| `GET /users/1` avec JWT en `Bearer` | 200 |
+| Modifier 1 caractère du JWT | **401** (signature invalide) |
+| Vieux JWT après modification de `JWT_SECRET` | **401** (signature invalide) |
+| Inventer un JWT random | **401** |
 
-### Relation N-N avec table de jointure (User ↔ Like ↔ Post)
+### 🎉 LE TEST FRONT (qui valide tout)
 
-```prisma
-model Like {
-  userId    Int
-  user      User @relation(fields: [userId], references: [id])
-  postId    Int
-  post      Post @relation(fields: [postId], references: [id])
-  createdAt DateTime @default(now())
+1. Connecte-toi via le formulaire → tu vois la timeline
+2. Ouvre la console DevTools → `localStorage.getItem('devconnect.token')` → c'est un JWT
+3. Clique un ❤️ → ça marche
+4. Coupe le serveur, modifie `JWT_SECRET` dans `.env`, relance, recharge → le front te déconnecte automatiquement (le 401 est géré au J1)
+5. Reconnecte-toi avec `demo` → re-marche
 
-  @@id([userId, postId])   // ← clé primaire COMPOSITE
-}
-```
+**Le contrat HTTP est resté stable depuis le J1.** Le front n'a pas bougé d'une ligne pour passer de `user-1` à `eyJhbGci...`.
 
-On a choisi une **table explicite** parce qu'on voulait ajouter un champ `createdAt` sur la relation (savoir QUAND un like a été fait).
+### 🆘 Coincé ? (atelier 2)
 
-### La clé composite — concept nouveau
+1. **`POST /auth/login` renvoie 500** → vérifie que tu as bien `JWT_SECRET` dans ton `.env` ET que le serveur a été relancé après. `dotenv` ne re-lit pas en cours d'exécution.
+2. **`GET /users/1` avec JWT renvoie 500** → tu as oublié le `try/catch` autour de `jwt.verify`. Un token invalide throw une exception ; sans catch, le middleware crash.
+3. **Mon JWT décodé sur jwt.io n'affiche pas `{ sub: 1 }`** → vérifie que tu as bien signé avec `{ sub: newUser.id }` et pas `newUser.id` directement (le payload doit être un objet).
+4. **Tous mes JWT d'hier ne marchent plus** → tu as changé `JWT_SECRET` entre 2 sessions. C'est normal : le secret est le seul gardien, si tu le changes, tous les tokens existants deviennent invalides. Reconnecte-toi.
+5. **`jwt.verify` lit mal `process.env.JWT_SECRET`** → vérifie que ton serveur a bien `import 'dotenv/config'` (déjà en place depuis le J2).
 
-Une "clé primaire" identifie une ligne. Habituellement c'est UN champ (`id` auto-incrémenté). Mais parfois l'identifiant naturel est un **couple** : pour un Like, c'est `(userId, postId)` — un user ne peut pas liker deux fois le même post.
+---
 
-`@@id([userId, postId])` dit à Prisma :
+## 📚 Documentation de référence
 
-- la clé primaire est le couple `(userId, postId)`
-- impossible d'avoir deux fois la même ligne → la garantie d'unicité est au niveau base.
-
-**`@id` vs `@@id`** : `@id` (un `@`) marque la PK quand c'est UNE colonne (l'`id` de User à l'atelier 1). `@@id` (deux `@`) marque la PK quand c'est PLUSIEURS colonnes — se met à la fin du model, comme une signature.
-
-Pour interroger cette clé, Prisma génère un nom combiné `userId_postId` (les noms des champs joints par `_`) :
-
-```js
-await prisma.like.findUnique({
-  where: { userId_postId: { userId: 3, postId: 1 } }
-});
-```
-
-### `include` : récupérer les relations dans la même requête
-
-Par défaut, Prisma ne suit PAS les relations (pour rester rapide). Si on veut le post avec ses likes :
-
-```js
-const post = await prisma.post.findUnique({
-  where: { id },
-  include: { likes: true }   // ← sans ça, post.likes est undefined
-});
-```
-
-C'est l'**erreur n°1** des élèves sur la Partie A : oublier `include` → le compteur ❤️ du front reste figé à 0.
-
-### Le helper `toApi` — comment on garde le contrat HTTP du J2
-
-Prisma renvoie les likes sous forme d'**objets** Like complets. Au J1/J2, le front est codé pour des **tableaux d'ids** (`post.likes.includes(currentUser.id)`).
-
-Plutôt que de toucher au front, on **aplatit côté serveur** dans toutes les routes :
-
-```js
-function toApi(post) {
-  return {
-    ...post,
-    likes: (post.likes ?? []).map(l => l.userId)
-  };
-}
-```
-
-C'est un **pattern de prod réaliste** : la DB renvoie un format (riche, normalisé) et l'API expose un autre (adapté au consommateur). Le helper documente clairement cette transformation et centralise le code à un seul endroit.
-
-### Pourquoi Étape 0 avant les routes ?
-
-Les routes Posts utilisent `include: { likes: true }`. Si on essayait de migrer ces routes **avant** d'avoir créé le modèle Like dans le schema, Prisma rejetterait avec `"Unknown field 'likes' for include statement on model Post"`. Donc on prépare la DB d'abord (Post + Like + 2 migrations + seed), et on code les routes ensuite.
-
-### Pourquoi migrer "par paquets" (Partie A / Partie B) ?
-
-Les 3 routes Posts sont 3 variations du même pattern Prisma (`findMany` / `findUnique` / `create`, toutes passées par `toApi`). Les migrer ensemble fait taper le même squelette plusieurs fois d'affilée → ça consolide le pattern. Pareil pour la Partie B avec la clé composite.
-
-Si on éclatait en 5 petits trous, on perdrait l'effet de répétition qui ancre le pattern, et la verbosité explose pour pas grand-chose côté pédagogique.
-
-### Le nettoyage final
-
-`data/users.js` et `data/posts.js` ont été supprimés (dossier `data/` complètement retiré). Plus aucun fichier ne les importe → c'est le geste "j'ai migré, je dégage l'ancien". Propre.
-
-## 🔜 À l'atelier du J4
-
-On rajoutera l'authentification sérieuse : `password` hashé avec bcrypt + JWT à la place des tokens fake. Et on en profitera pour illustrer une 4ᵉ migration `add-password` — qui montrera concrètement comment ajouter une colonne à une table existante (avec une valeur par défaut, sinon ça plante sur les lignes existantes).
+- [bcrypt sur npm](https://www.npmjs.com/package/bcrypt) — `hash`, `compare`, `genSalt`
+- [jsonwebtoken sur npm](https://www.npmjs.com/package/jsonwebtoken) — `sign`, `verify`
+- [jwt.io](https://jwt.io) — décodeur visuel + intro JWT
+- [Doc OWASP — Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) — pour aller plus loin sur les bonnes pratiques bcrypt

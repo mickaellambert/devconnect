@@ -23,8 +23,10 @@
 //    l'autoincrement SQLite à zéro pour garder des ids prévisibles
 //    (`Bearer user-1` = toujours Alice).
 //
-// (Tu n'as pas à modifier ce fichier aujourd'hui. Il est fourni
-//  complet.)
+// 🔧 AU J4 : tu vas devoir ajouter le HASH du password "demo" à chaque
+//    user à la création. C'est marqué `🔧 ATELIER 1` plus bas. Sans
+//    cette modif, le seed plantera après ta migration `add-password`
+//    (colonne password NOT NULL, mais on n'en fournit pas).
 // ═══════════════════════════════════════════════════════════════
 
 import { PrismaClient } from '@prisma/client';
@@ -61,9 +63,9 @@ function hasModel(name) {
   return typeof prisma[name]?.deleteMany === 'function';
 }
 
-// Affiche la liste des users seedés avec leur token fake `Bearer user-N`,
-// pour aider l'élève à tester via Thunder Client sans aller chercher
-// les ids dans Prisma Studio.
+// Affiche la liste des emails seedés, pour aider à tester via Thunder Client.
+// Au J3 le token est fake (`Bearer user-N`) ; au J4 c'est un JWT obtenu via
+// /auth/login. Dans les deux cas, l'email est ton point d'entrée.
 async function printCredentials() {
   const allUsers = await prisma.user.findMany({
     select: { id: true, username: true, email: true },
@@ -71,8 +73,10 @@ async function printCredentials() {
   });
   console.log('\n🪪 Comptes seedés (pour tester via Thunder Client) :');
   for (const u of allUsers) {
-    console.log(`   ${u.email.padEnd(28)} → Authorization: Bearer user-${u.id}`);
+    console.log(`   ${u.email.padEnd(28)} (id=${u.id}, password "demo" au J4)`);
   }
+  console.log('   → J3 : header `Authorization: Bearer user-<id>`');
+  console.log('   → J4 : POST /auth/login pour obtenir un JWT, puis `Authorization: Bearer <jwt>`');
   console.log('');
 }
 
@@ -99,6 +103,11 @@ async function main() {
   try { await prisma.$executeRawUnsafe(`DELETE FROM sqlite_sequence`); } catch {}
 
   console.log('🌱 Seed : création des users…');
+
+  // 🔧 ATELIER 1 J4 — Hasher "demo" avec bcrypt.hash et l'ajouter au
+  //                  data du create (sinon : NOT NULL constraint failed).
+  //                  Pense aussi à `import bcrypt from 'bcrypt'` en haut.
+  //                  (Tu peux supprimer ce commentaire une fois la modif faite.)
   for (const u of users) {
     await prisma.user.create({ data: u });
   }

@@ -1,20 +1,41 @@
 import { prisma } from '../prisma/client.js';
+// 🔧 ATELIER 2 — import à ajouter :   import jwt from 'jsonwebtoken';
 
 // ═══════════════════════════════════════════════════════════════
-// Middleware d'authentification — VERSION FAKE pour J3
+// Middleware d'authentification — VERSION FAKE héritée du J3
 // ═══════════════════════════════════════════════════════════════
-// Ce middleware lit le header `Authorization: Bearer user-<id>` envoyé
-// par le client, retrouve le user correspondant en BASE DE DONNÉES
-// (via Prisma) et l'attache à la requête sous `req.user`.
+// Lit le header `Authorization: Bearer <token>` et identifie l'user.
+// Aujourd'hui le token est de la forme `user-1`, `user-2`… → trivial
+// à falsifier. À l'atelier 2 on remplace par une vraie vérification
+// de JWT signé.
+// ═══════════════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════════════════
+// 🔧 ATELIER 2 — Remplacer le token fake par un vrai JWT.verify
+// ═══════════════════════════════════════════════════════════════
 //
-// ⚠️ Version temporaire, non sécurisée (n'importe qui peut écrire
-// `Bearer user-2` et se faire passer pour quelqu'un d'autre). Au J4,
-// ce middleware sera remplacé par une vraie vérification de jeton JWT
-// signé cryptographiquement — le contrat HTTP ne changera pas.
+// (Tout ce qui est "qu'est-ce qu'un JWT, signature, sub…" est dans
+//  le vocabulaire éclair du Notion. Ici on se concentre sur le HOW.)
 //
-// 💡 Ce fichier est FOURNI DÉJÀ MIGRÉ vers Prisma. Sers-t'en comme
-// modèle pour migrer les autres routes : tu vois comment on remplace
-// `users.find(u => u.id === id)` par `prisma.user.findUnique(...)`.
+// Remplace le bloc `const match = token.match(...)` ci-dessous par
+// 3 étapes à écrire toi-même :
+//
+//   a. `jwt.verify(token, process.env.JWT_SECRET)` → te renvoie le
+//      payload signé (notamment `payload.sub` = l'id du user).
+//
+//   b. Utilise `payload.sub` pour faire le `findUnique` sur User et
+//      assigner `req.user` si le user existe.
+//
+//   c. ENVELOPPE le tout dans un `try/catch`. Si tu oublies, un
+//      token invalide ou expiré fait crasher le middleware (→ 500
+//      au lieu de 401). Catch vide : on laisse `req.user` undefined
+//      et `requireAuth` renverra 401 plus loin.
+//
+// Tester :
+//   • GET /users/1 avec un JWT valide → 200
+//   • Modifie 1 caractère du JWT → 401
+//   • Bearer user-1 (l'ancien fake) → 401
 // ═══════════════════════════════════════════════════════════════
 
 export async function authenticate(req, res, next) {
@@ -22,6 +43,8 @@ export async function authenticate(req, res, next) {
 
   if (header && header.startsWith('Bearer ')) {
     const token = header.slice('Bearer '.length);
+
+    // 🔧 ATELIER 2 — remplace le bloc ci-dessous par jwt.verify + try/catch
     const match = token.match(/^user-(\d+)$/);
     if (match) {
       const id = Number(match[1]);

@@ -1,171 +1,84 @@
 // ═══════════════════════════════════════════════════════════════
-// Schéma Prisma — DevConnect
+// Schéma Prisma — DevConnect (J4 — ajout du password)
 // ═══════════════════════════════════════════════════════════════
 // Ce fichier décrit ta base de données : les tables, les colonnes,
 // les relations. Prisma le lit pour générer le SQL (migrations) et
 // le client JavaScript qu'on utilise dans les routes.
 //
-// Doc : https://www.prisma.io/docs/concepts/components/prisma-schema
+// État à l'arrivée du J4 (héritage du J3) :
+//   • 3 models déjà définis : User, Post (1-N avec User), Like (N-N
+//     via clé composite). Tu n'as PAS à les recoder.
+//   • 3 migrations déjà appliquées : init, add-posts, add-likes.
+//   • Le seed peuple 5 users + 10 posts + 21 likes.
+//
+// 🔧 CE QUI CHANGE AU J4 :
+//   Le model User n'a pas de champ `password`. C'est ce qu'on va
+//   corriger à l'atelier 1, avec une 4ᵉ migration `add-password`.
 // ═══════════════════════════════════════════════════════════════
 
-// Où est la base et quel type de DB on utilise.
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-// Comment générer le client JavaScript adapté à ce schéma.
 generator client {
   provider = "prisma-client-js"
 }
 
 
 // ═══════════════════════════════════════════════════════════════
-// 🔧 ATELIER 1 — À TOI DE JOUER : écris le modèle User
+// 🔧 ATELIER 1 — À TOI DE JOUER : ajoute le champ `password` au User
 // ═══════════════════════════════════════════════════════════════
 //
-// ⚠️ AVANT DE TAPER QUOI QUE CE SOIT — la syntaxe Prisma N'EST PAS
-//    DU JAVASCRIPT. C'est un langage à part. Tu écris :
+// On va stocker en DB le hash bcrypt du password de chaque user
+// (jamais le password en clair).
 //
-//      • PAS de virgules entre les colonnes
-//      • PAS de virgules entre les attributs (@id @default sans virgule)
-//      • PAS de point-virgules
-//      • PAS de `:` entre le nom et le type
+// Ajoute une colonne :
 //
-//    Format d'une colonne :   <nom>  <type>  <attribut1> <attribut2>
-//                              ↑      ↑       ↑          ↑
-//                              espace, juste des espaces, c'est tout
+//   password  String
 //
-// ─── LE MODÈLE À OBTENIR ──────────────────────────────────────
+// → `String` (et pas `String?`) parce qu'on veut FORCER chaque user
+// à avoir un password (contrainte au niveau base).
 //
-// On veut une table User avec 4 colonnes :
+// ─── ⚠️ TU VAS VIVRE UN PROBLÈME DE PROD ──────────────────────
 //
-//      • id          → un entier, clé primaire, auto-incrémenté
-//      • username    → une string, unique
-//      • email       → une string, unique
-//      • createdAt   → une DateTime, valeur par défaut = maintenant
+// Quand tu lanceras `npx prisma migrate dev --name add-password`,
+// Prisma va râler : il y a déjà 5 users seedés du J3, et il ne sait
+// pas quelle valeur de password mettre pour eux. Il refuse.
 //
-// ─── SQUELETTE À COMPLÉTER ────────────────────────────────────
+// La stratégie qu'on prend en dev (RACCOURCI à NE PAS faire en prod) :
 //
-//   model User {
-//     id        Int      @id @default(autoincrement())
-//     // ↓ À toi : ajoute les 3 autres colonnes
+//   rm prisma/dev.db                                          # jeter la DB
+//   npx prisma migrate dev --name add-password --skip-seed    # tout recréer
+//   npx prisma db seed                                        # repeupler (APRÈS avoir adapté seed.js)
 //
-//     // username  → String, unique
-//     // email     → String, unique
-//     // createdAt → DateTime, valeur par défaut = now()
-//   }
+// Pourquoi `--skip-seed` ? Sans ce flag, Prisma lance auto le seed
+// après avoir recréé la DB. Mais le seed n'est pas encore adapté pour
+// fournir le password → il planterait. On le skip, on adapte le seed
+// à l'étape suivante, on le lance manuellement.
 //
-// ─── ATTRIBUTS UTILES ─────────────────────────────────────────
-//
-//   @id                       → marque la clé primaire
-//   @default(autoincrement()) → auto-incrémenté (entier)
-//   @unique                   → contrainte d'unicité
-//   @default(now())           → valeur par défaut = date courante
-//
-// 💡 Tu peux empiler plusieurs attributs sur une colonne, séparés par
-//    des espaces : @id @default(autoincrement())
-//
-// ⚠️ Le champ `password` arrivera au J4 (avec une migration dédiée
-//    qui illustrera concrètement le concept de migration incrémentale).
-//    Pour aujourd'hui, on ne le met pas — on bosse comme au J2.
-//
-// 💡 À l'atelier 2, on AJOUTERA des relations à ce modèle User :
-//      posts Post[]   // un user a plusieurs posts (1-N)
-//      likes Like[]   // un user fait plusieurs likes (1-N vers Like)
-//    Pour l'atelier 1, on n'a pas encore besoin de ces lignes.
-//
-// 📚 Doc des types : https://www.prisma.io/docs/orm/reference/prisma-schema-reference#model-fields
+// 💡 Le détail "en prod on ferait autrement" (default temporaire,
+//    backfill, migration en plusieurs étapes…) est expliqué en
+//    correction live coding. Pour l'atelier on prend le raccourci.
 // ═══════════════════════════════════════════════════════════════
-
-// Écris ton model User ci-dessous :
 
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique
   email     String   @unique
+  // ↓ ajoute ici la colonne password (ex. après email)
   createdAt DateTime @default(now())
+
   posts     Post[]
   likes     Like[]
 }
 
 
 // ═══════════════════════════════════════════════════════════════
-// 🔧 ATELIER 2 — À TOI DE JOUER : écris le modèle Post (relation 1-N)
+// ✅ HÉRITAGE J3 — Post (relation 1-N avec User)
 // ═══════════════════════════════════════════════════════════════
-//
-// On va modéliser que chaque Post appartient à UN User (son auteur),
-// et qu'un User peut avoir PLUSIEURS Posts. C'est une relation
-// "un-à-plusieurs" (1-N).
-//
-// ─── COMMENT MARCHE UNE RELATION 1-N EN PRISMA ────────────────
-//
-// Côté Post (le "N", l'enfant) : on a DEUX champs liés :
-//
-//      userId  Int                                       ← la "foreign key" (la VRAIE colonne SQL,
-//                                                          contient juste un nombre = l'id de User)
-//      user    User  @relation(fields: [userId], references: [id])
-//                                                        ↑
-//                                            la "navigation property" :
-//                                            PAS une colonne SQL — c'est un raccourci JS pour
-//                                            écrire `post.user` (Prisma va chercher le User
-//                                            correspondant tout seul, sans 2e requête à écrire).
-//
-// 💡 Pourquoi les crochets `[ ]` dans `fields: [userId]` et `references: [id]` ?
-//    Parce que ces options acceptent **plusieurs** champs (utile pour les FK
-//    composites, cas rare). Ici on en a qu'un seul mais on garde la syntaxe
-//    tableau. Tu reverras des crochets pareils dans `@@id([userId, postId])`
-//    sur le model Like plus bas — même logique.
-//
-// Côté User (le "1", le parent) : on AJOUTE juste une collection :
-//
-//      posts   Post[]                                    ← "Post[]" = "un tableau de Posts"
-//                                                          (comme `Array<Post>` en TS, ou `Post[]` en Java)
-//
-// ⚠️ La relation DOIT être déclarée des DEUX côtés.
-//    Prisma râle sinon : "the relation is not complete".
-//
-// ─── LE MODÈLE À OBTENIR ──────────────────────────────────────
-//
-// On veut une table Post avec :
-//
-//      • id        → entier, clé primaire, auto-incrémenté
-//      • userId    → entier (la foreign key vers User)
-//      • user      → relation vers User (navigation property)
-//      • content   → string
-//      • createdAt → DateTime, défaut = now()
-//
-// ─── SQUELETTE À COMPLÉTER ────────────────────────────────────
-//
-//   model Post {
-//     id        Int      @id @default(autoincrement())
-//     userId    Int
-//     user      User     @relation(fields: [userId], references: [id])
-//     // ↓ À toi : ajoute content et createdAt
-//
-//     // content   → String
-//     // createdAt → DateTime, valeur par défaut = now()
-//   }
-//
-// 🔧 N'OUBLIE PAS d'ajouter `posts Post[]` dans le modèle User ci-dessus !
-//
-// ─── MIGRATION ─────────────────────────────────────────────────
-//
-// Une fois le modèle Post écrit (et `posts Post[]` ajouté dans User) :
-//   npx prisma migrate dev --name add-posts
-//
-// Tu verras une 2e migration apparaître dans `prisma/migrations/`.
-// C'est ça, une migration INCRÉMENTALE : un fichier .sql qui ajoute
-// la table Post à la base existante, sans toucher à User.
-//
-// ⏸️ NE LANCE PAS ENCORE LE SEED. On attend d'avoir aussi le modèle
-//    Like ci-dessous (pour seeder posts + likes en une fois). Si tu
-//    le lances maintenant, le seed marche, mais il s'arrêtera à
-//    "10 posts en base" (pas de likes) car Like n'existe pas encore.
+// Ne touche pas à ce model — il vient du J3.
 // ═══════════════════════════════════════════════════════════════
-
-// Écris ton model Post ci-dessous :
-
 model Post {
   id        Int      @id @default(autoincrement())
   userId    Int
@@ -177,100 +90,10 @@ model Post {
 
 
 // ═══════════════════════════════════════════════════════════════
-// 🔧 ATELIER 2 — À TOI DE JOUER : écris le modèle Like (relation N-N)
+// ✅ HÉRITAGE J3 — Like (relation N-N via clé composite)
 // ═══════════════════════════════════════════════════════════════
-//
-// On va modéliser les likes : un User peut liker PLUSIEURS Posts, et
-// un Post peut être liké par PLUSIEURS Users. C'est une relation
-// "plusieurs-à-plusieurs" (N-N).
-//
-// ─── COMMENT MARCHE UNE RELATION N-N AVEC TABLE DE JOINTURE ───
-//
-// On modélise les likes par une TABLE INTERMÉDIAIRE `Like` :
-//
-//      User ─────< Like >───── Post
-//             (table de jointure)
-//
-//    (Notation à la "Crow's Foot" : le `<` du côté Like indique le côté
-//     "many" — un User correspond à plusieurs Likes, idem pour Post.)
-//
-// Chaque ligne de Like = un like précis = un couple (userId, postId).
-// On ajoute aussi un champ `createdAt` pour savoir QUAND chaque like
-// a été fait (rien n'oblige à le faire, mais c'est utile).
-//
-// ─── LA CLÉ COMPOSITE — concept nouveau ───────────────────────
-//
-// 💡 Qu'est-ce qu'une CLÉ COMPOSITE ?
-//
-//    Une "clé primaire" identifie de manière unique une ligne dans
-//    une table. Habituellement, c'est UN champ (l'id auto-incrémenté).
-//    Mais parfois, l'identifiant naturel est un COUPLE de champs.
-//
-//    Pour un Like : il n'y a pas d'`id` propre — un like est identifié
-//    par "QUI a liké QUOI". Le couple (userId, postId) est l'identité
-//    unique.
-//
-//    @@id([userId, postId])  dit à Prisma :
-//      • la clé primaire est le couple (userId, postId)
-//      • IMPOSSIBLE d'avoir deux fois la même ligne
-//        → garantie au niveau base qu'un user ne peut pas liker
-//          deux fois le même post.
-//
-// 💡 Pourquoi `@@id` (deux `@`) et pas `@id` (un seul) ?
-//      • `@id`  (un `@`) → attribut d'UNE colonne. Tu l'as utilisé
-//                          à l'atelier 1 sur la colonne `id` du User.
-//      • `@@id` (deux `@`) → attribut du MODEL, parce qu'il décrit une
-//                          contrainte qui implique PLUSIEURS colonnes.
-//                          Se met à la fin du model, comme une signature.
-//    (Pareil pour `@unique` (un champ unique) vs `@@unique([…])` (combo unique).)
-//
-// ─── LE MODÈLE À OBTENIR ──────────────────────────────────────
-//
-// On veut une table Like avec :
-//
-//      • userId    → FK vers User
-//      • user      → navigation property vers User
-//      • postId    → FK vers Post
-//      • post      → navigation property vers Post
-//      • createdAt → DateTime, défaut = now()
-//      • clé primaire COMPOSITE : (userId, postId)
-//
-// ─── SQUELETTE À COMPLÉTER ────────────────────────────────────
-//
-//   model Like {
-//     userId    Int
-//     user      User     @relation(fields: [userId], references: [id])
-//     // ↓ À toi : ajoute postId, post (relation), createdAt
-//
-//     // postId    → Int
-//     // post      → relation vers Post (comme user vers User, mais sur postId)
-//     // createdAt → DateTime, défaut = now()
-//
-//     // ↓ Et n'oublie pas la clé primaire composite à la fin :
-//     // @@id([userId, postId])
-//   }
-//
-// 🔧 N'OUBLIE PAS d'ajouter `likes Like[]` :
-//      • dans le modèle User (un user fait plusieurs likes)
-//      • dans le modèle Post (un post a plusieurs likes)
-//
-// ─── MIGRATION + SEED ─────────────────────────────────────────
-//
-// Une fois le modèle Like écrit (et `likes Like[]` ajouté dans User
-// ET dans Post) :
-//   npx prisma migrate dev --name add-likes
-//   npx prisma db seed
-//
-// Tu auras maintenant 3 migrations dans `prisma/migrations/` :
-// init, add-posts, add-likes. C'est l'historique versionné de ta DB.
-//
-// Le seed va peupler 5 users + 10 posts + 21 likes. Il est idempotent
-// (tu peux le re-lancer autant de fois que tu veux). Une fois ça fait,
-// tu peux passer aux routes (Partie A puis Partie B dans routes/posts.js).
+// Ne touche pas à ce model — il vient du J3.
 // ═══════════════════════════════════════════════════════════════
-
-// Écris ton model Like ci-dessous :
-
 model Like {
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
