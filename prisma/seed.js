@@ -30,6 +30,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -103,13 +104,11 @@ async function main() {
   try { await prisma.$executeRawUnsafe(`DELETE FROM sqlite_sequence`); } catch {}
 
   console.log('🌱 Seed : création des users…');
-
-  // 🔧 ATELIER 1 J4 — Hasher "demo" avec bcrypt.hash et l'ajouter au
-  //                  data du create (sinon : NOT NULL constraint failed).
-  //                  Pense aussi à `import bcrypt from 'bcrypt'` en haut.
-  //                  (Tu peux supprimer ce commentaire une fois la modif faite.)
+  // Tous les seedés partagent "demo" comme password, pour faciliter les
+  // tests Thunder Client. En prod, chaque user aurait son propre hash.
+  const passwordHash = await bcrypt.hash('demo', 10);
   for (const u of users) {
-    await prisma.user.create({ data: u });
+    await prisma.user.create({ data: { ...u, password: passwordHash } });
   }
 
   // À l'atelier 1, le modèle Post n'existe pas encore. On s'arrête là.

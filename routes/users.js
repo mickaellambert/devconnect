@@ -3,45 +3,35 @@ import { prisma } from '../prisma/client.js';
 
 const router = express.Router();
 
-
-// ═══════════════════════════════════════════════════════════════
-// 🔧 ATELIER 1 — Étape 3 (suite) : ne pas exposer le hash sur les GET
-// ═══════════════════════════════════════════════════════════════
-// `GET /users` et `GET /users/:id` renvoient l'objet user complet →
-// le hash bcrypt fuiterait. Ici on a un raccourci propre : dire à
-// Prisma de ne PAS sélectionner la colonne `password` du tout.
-//
-// À faire :
-//   1. Crée une constante `publicUserSelect` (au-dessus des routes)
-//      qui liste les colonnes publiques : id, username, email, createdAt.
-//   2. Ajoute `select: publicUserSelect` aux deux appels Prisma
-//      ci-dessous (findMany et findUnique).
-//
-// 💡 Différence avec le helper `toPublicUser` de auth.js :
-//      • toPublicUser → on FETCH le password puis on le strip (nécessaire
-//                       côté auth pour pouvoir faire `bcrypt.compare`).
-//      • select        → on ne FETCH MÊME PAS le password (plus efficace,
-//                       quand on n'en a pas besoin, comme ici).
-// ═══════════════════════════════════════════════════════════════
+// Colonnes "publiques" du User — on n'expose JAMAIS `password` via l'API.
+// Plus efficace que fetcher tout puis stripper : on dit à Prisma de ne
+// même pas sélectionner la colonne.
+const publicUserSelect = {
+  id: true,
+  username: true,
+  email: true,
+  createdAt: true,
+};
 
 
 // ═══════════════════════════════════════════════════════════════
-// GET /users → liste de tous les users
+// GET /users → liste de tous les users (sans le hash password)
 // ═══════════════════════════════════════════════════════════════
 router.get('/', async (req, res) => {
-  // 🔧 ÉTAPE 3 — ajoute `{ select: publicUserSelect }` dans findMany.
-  const users = await prisma.user.findMany();
+  const users = await prisma.user.findMany({ select: publicUserSelect });
   res.json(users);
 });
 
 
 // ═══════════════════════════════════════════════════════════════
-// GET /users/:id → détail d'un user
+// GET /users/:id → détail d'un user (sans le hash password)
 // ═══════════════════════════════════════════════════════════════
 router.get('/:id', async (req, res) => {
   const id = Number(req.params.id);
-  // 🔧 ÉTAPE 3 — ajoute `select: publicUserSelect` dans findUnique.
-  const user = await prisma.user.findUnique({ where: { id } });
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: publicUserSelect,
+  });
 
   if (!user) {
     return res.status(404).json({ error: "User non trouvé" });

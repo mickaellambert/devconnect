@@ -66,7 +66,7 @@ model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique
   email     String   @unique
-  // ↓ ajoute ici la colonne password (ex. après email)
+  password  String
   createdAt DateTime @default(now())
 
   posts     Post[]
