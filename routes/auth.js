@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
-// 🔧 ATELIER 2 — import à ajouter :   import jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma/client.js';
 import { sendWelcomeEmail } from '../services/email.js';
 
@@ -18,9 +18,13 @@ const LoginSchema = z.object({
   password: z.string().min(1, "password requis")
 });
 
+// Construit un JWT signé pour un user donné.
+// Le payload contient juste `sub` (id du user, claim standard JWT).
+function signTokenFor(userId) {
+  return jwt.sign({ sub: userId }, process.env.JWT_SECRET, { expiresIn: '24h' });
+}
+
 // Retire le hash du password avant de renvoyer un user au client.
-// Le hash n'a aucune raison d'être exposé via l'API — il sert uniquement
-// au login en interne.
 function toPublicUser(user) {
   const { password, ...publicUser } = user;
   return publicUser;
@@ -28,7 +32,7 @@ function toPublicUser(user) {
 
 
 // ═══════════════════════════════════════════════════════════════
-// POST /auth/register (Prisma + bcrypt)
+// POST /auth/register (Prisma + bcrypt + JWT)
 // ═══════════════════════════════════════════════════════════════
 router.post('/register', async (req, res) => {
   const result = RegisterSchema.safeParse(req.body);
@@ -51,15 +55,14 @@ router.post('/register', async (req, res) => {
   await sendWelcomeEmail(newUser);
 
   res.status(201).json({
-    // 🔧 ATELIER 2 — remplace `user-${newUser.id}` par jwt.sign(...)
-    token: `user-${newUser.id}`,
+    token: signTokenFor(newUser.id),
     user: toPublicUser(newUser)
   });
 });
 
 
 // ═══════════════════════════════════════════════════════════════
-// POST /auth/login (Prisma + bcrypt.compare)
+// POST /auth/login (Prisma + bcrypt.compare + JWT)
 // ═══════════════════════════════════════════════════════════════
 router.post('/login', async (req, res) => {
   const result = LoginSchema.safeParse(req.body);
@@ -79,8 +82,7 @@ router.post('/login', async (req, res) => {
   }
 
   res.json({
-    // 🔧 ATELIER 2 — remplace `user-${user.id}` par jwt.sign(...)
-    token: `user-${user.id}`,
+    token: signTokenFor(user.id),
     user: toPublicUser(user)
   });
 });

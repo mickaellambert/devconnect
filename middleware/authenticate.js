@@ -1,41 +1,16 @@
+import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma/client.js';
-// 🔧 ATELIER 2 — import à ajouter :   import jwt from 'jsonwebtoken';
 
 // ═══════════════════════════════════════════════════════════════
-// Middleware d'authentification — VERSION FAKE héritée du J3
+// Middleware d'authentification — JWT
 // ═══════════════════════════════════════════════════════════════
-// Lit le header `Authorization: Bearer <token>` et identifie l'user.
-// Aujourd'hui le token est de la forme `user-1`, `user-2`… → trivial
-// à falsifier. À l'atelier 2 on remplace par une vraie vérification
-// de JWT signé.
-// ═══════════════════════════════════════════════════════════════
-
-
-// ═══════════════════════════════════════════════════════════════
-// 🔧 ATELIER 2 — Remplacer le token fake par un vrai JWT.verify
-// ═══════════════════════════════════════════════════════════════
+// Lit le header `Authorization: Bearer <jwt>` envoyé par le client,
+// vérifie la signature + l'expiration via `jwt.verify`, et attache
+// l'utilisateur correspondant à `req.user`.
 //
-// (Tout ce qui est "qu'est-ce qu'un JWT, signature, sub…" est dans
-//  le vocabulaire éclair du Notion. Ici on se concentre sur le HOW.)
-//
-// Remplace le bloc `const match = token.match(...)` ci-dessous par
-// 3 étapes à écrire toi-même :
-//
-//   a. `jwt.verify(token, process.env.JWT_SECRET)` → te renvoie le
-//      payload signé (notamment `payload.sub` = l'id du user).
-//
-//   b. Utilise `payload.sub` pour faire le `findUnique` sur User et
-//      assigner `req.user` si le user existe.
-//
-//   c. ENVELOPPE le tout dans un `try/catch`. Si tu oublies, un
-//      token invalide ou expiré fait crasher le middleware (→ 500
-//      au lieu de 401). Catch vide : on laisse `req.user` undefined
-//      et `requireAuth` renverra 401 plus loin.
-//
-// Tester :
-//   • GET /users/1 avec un JWT valide → 200
-//   • Modifie 1 caractère du JWT → 401
-//   • Bearer user-1 (l'ancien fake) → 401
+// Sur token invalide ou expiré, `jwt.verify` lève une erreur → on
+// l'attrape (catch vide) et `req.user` reste undefined → `requireAuth`
+// renverra 401 plus loin (réponse propre, pas un 500).
 // ═══════════════════════════════════════════════════════════════
 
 export async function authenticate(req, res, next) {
@@ -44,14 +19,14 @@ export async function authenticate(req, res, next) {
   if (header && header.startsWith('Bearer ')) {
     const token = header.slice('Bearer '.length);
 
-    // 🔧 ATELIER 2 — remplace le bloc ci-dessous par jwt.verify + try/catch
-    const match = token.match(/^user-(\d+)$/);
-    if (match) {
-      const id = Number(match[1]);
-      const user = await prisma.user.findUnique({ where: { id } });
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await prisma.user.findUnique({ where: { id: payload.sub } });
       if (user) {
         req.user = user;
       }
+    } catch {
+      // Token invalide ou expiré → req.user reste undefined → 401 via requireAuth.
     }
   }
 
